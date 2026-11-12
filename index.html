@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Timebreakers</title>
+  <!-- Application installable (téléphone, tablette, ordinateur) : voir manifest.webmanifest et sw.js -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b1f4c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Timebreakers">
+  <link rel="apple-touch-icon" href="icones/icone-180.png">
+  <link rel="icon" type="image/png" href="icones/icone-192.png">
+  <!-- Polices embarquées (dossier polices/) : le jeu s'affiche pareil sans connexion -->
+  <link rel="stylesheet" href="polices/polices.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="in-menu">
+  <!-- Le champ de bataille remplit l'écran ; le bandeau, les commandes et le pouvoir sont posés dessus. -->
+  <div id="app">
+    <div id="stage">
+      <canvas id="canvas"></canvas>
+
+      <header id="hud">
+        <div class="hud-l">
+          <div id="hud-level" class="tb-title">—</div>
+          <div id="hud-enemy" class="tb-sub"></div>
+          <div id="hud-track" class="track"></div>
+          <div id="relics"></div>
+        </div>
+        <div class="hud-c">
+          <div class="pill gold" title="Or"><i>●</i><span id="hud-gold">0</span></div>
+          <div class="xp" title="Expérience">
+            <div class="bar"><div id="hud-xp-fill"></div><span id="hud-xp-text"></span></div>
+            <button id="btn-evolve" title="Raccourci : V" disabled>Évoluer</button>
+          </div>
+          <span id="hud-age" hidden></span>
+        </div>
+        <div class="hud-r">
+          <div class="pill pp"><i>✦</i><span id="hud-pp">0</span></div>
+          <div class="pill time"><span id="hud-time">0:00</span></div>
+          <button id="btn-speed" class="round" title="Vitesse du jeu">×1</button>
+          <button id="btn-pause" class="round" title="Pause (touche P)">Ⅱ</button>
+          <button id="btn-quit" class="round quit" title="Abandonner la run">✕</button>
+        </div>
+      </header>
+
+      <div id="toast"></div>
+      <button id="btn-special" class="special" title="Pouvoir (Espace)"></button>
+
+      <!-- Commandes : tout tient dans la bande de sol, rien ne recouvre le terrain.
+           unités · file d'entraînement · emplacements de tourelles · tourelles à acheter -->
+      <div id="dock">
+        <div id="unit-buttons" class="btn-row"></div>
+        <div id="queue" title="File d'entraînement"></div>
+        <div id="slots" class="btn-row" title="Emplacements de tourelles"></div>
+        <div id="turret-buttons" class="btn-row"></div>
+      </div>
+
+      <button id="pause-veil" title="Reprendre"><span>PAUSE<small>Touche l'écran pour reprendre</small></span></button>
+      <button id="pause-son" title="Couper ou remettre la musique">♪ Musique</button>
+    </div>
+  </div>
+
+  <div id="rotate"><div><i>📱</i>Tourne ton téléphone<small>Le jeu se joue à l'horizontale.</small></div></div>
+  <div id="overlay" class="hidden"><div id="overlay-card"></div></div>
+
+  <script src="js/version.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/meta.js"></script>
+  <script src="js/battle.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/art/jurassique.js"></script>
+  <script src="js/art/antiquite.js"></script>
+  <script src="js/art/medieval.js"></script>
+  <script src="js/art/renaissance.js"></script>
+  <script src="js/art/vapeur.js"></script>
+  <script src="js/art/moderne.js"></script>
+  <script src="js/art/heros.js"></script>
+  <script src="js/art/postapo.js"></script>
+  <script src="js/art/futur.js"></script>
+  <script src="js/art/alien.js"></script>
+  <script src="js/art/assaut.js"></script>
+  <script src="js/musique.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Hors ligne et installation : seulement sur une vraie adresse (https, ou localhost pour les essais).
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>

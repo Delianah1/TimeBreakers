@@ -1,0 +1,19 @@
+{
+  "name": "Timebreakers",
+  "short_name": "Timebreakers",
+  "description": "Bataille de lignes à travers onze âges, du Jurassique à l'invasion extra-terrestre.",
+  "lang": "fr",
+  "id": "./index.html",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#0b1f4c",
+  "theme_color": "#0b1f4c",
+  "icons": [
+    { "src": "icones/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icones/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icones/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
