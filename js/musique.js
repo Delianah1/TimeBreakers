@@ -328,6 +328,9 @@ window.PA = window.PA || {};
     // qu'après le premier appui du joueur (les navigateurs l'exigent), puis suit les demandes.
     cle: 'timebreakers-son',
     on: true,
+    fx: true,           // effets sonores (js/sons.js) : oui / non
+    fxVol: 0.8,         // volume des effets
+    fxMode: 'synthe',   // 'synthe' (sons fabriqués par le navigateur) ou 'reel' (enregistrements, si installés : dossier sons/)
     debloque: false,
     voulu: null,
     charger() {
@@ -337,12 +340,33 @@ window.PA = window.PA || {};
           if (typeof s.on === 'boolean') this.on = s.on;
           if (typeof s.vol === 'number') this.volume = Math.max(0, Math.min(1, s.vol));
           if (s.so && this.SONORITES[s.so]) this.sonorite = s.so;
+          if (typeof s.fx === 'boolean') this.fx = s.fx;
+          if (typeof s.fxVol === 'number') this.fxVol = Math.max(0, Math.min(1, s.fxVol));
+          if (s.fxMode === 'synthe' || s.fxMode === 'reel') this.fxMode = s.fxMode;
         }
       } catch (e) { /* stockage indisponible : réglages par défaut */ }
     },
     sauver() {
-      try { localStorage.setItem(this.cle, JSON.stringify({ on: this.on, vol: this.volume, so: this.sonorite })); } catch (e) { /* ignore */ }
+      try { localStorage.setItem(this.cle, JSON.stringify({ on: this.on, vol: this.volume, so: this.sonorite, fx: this.fx, fxVol: this.fxVol, fxMode: this.fxMode })); } catch (e) { /* ignore */ }
     },
+    // Le contexte audio, partagé avec les effets sonores : créé au premier besoin (après un appui du joueur).
+    contexte() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      if (!this.ctx) this.ctx = new AC();
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      return this.ctx;
+    },
+    // La musique baisse un instant (générique, pouvoir) puis revient : niveau = part du volume gardée.
+    duck(secondes, niveau) {
+      const c = this.current;
+      if (!c || !this.ctx) return;
+      const g = c.B.sortie.gain, now = this.ctx.currentTime;
+      g.setTargetAtTime(this.volume * niveau, now, 0.05);
+      g.setTargetAtTime(this.volume, now + secondes, 0.3);
+    },
+    basculerFx() { this.fx = !this.fx; this.sauver(); return this.fx; },
+    reglerFx(v) { this.fxVol = Math.max(0, Math.min(1, v)); this.sauver(); if (window.PA && PA.Sons) PA.Sons.volume(); },
     demande(id) { this.voulu = id; this.appliquer(); },
     appliquer() {
       if (!this.debloque) return;
@@ -351,7 +375,7 @@ window.PA = window.PA || {};
       if (c && c.id === this.voulu && c.sonorite === this.sonorite) return;
       this.play(this.voulu);
     },
-    debloquer() { if (!this.debloque) { this.debloque = true; this.appliquer(); } },
+    debloquer() { if (!this.debloque) { this.debloque = true; this.appliquer(); if (this.fxMode === 'reel' && window.PA && PA.Sons) { this.contexte(); PA.Sons.chargerReel().then(() => PA.Sons.precharger()); } } },
     basculer() { this.on = !this.on; this.sauver(); this.appliquer(); return this.on; },
     choisirSonorite(so) { if (this.SONORITES[so]) { this.sonorite = so; this.sauver(); this.appliquer(); } },
     regler(v) { this.setVolume(v); this.sauver(); },
@@ -363,10 +387,8 @@ window.PA = window.PA || {};
       if (!TRACKS[id]) return;
       this.stop();
       if (sonorite) this.sonorite = sonorite;
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      const ctx = this.ctx = this.ctx || new AC();
-      if (ctx.state === 'suspended') ctx.resume();
+      const ctx = this.contexte();
+      if (!ctx) return;
       const part = this.partition(id), B = banc(ctx, this.sonorite, this.volume);
       B.epique = part.epique;
       const c = this.current = { id, sonorite: this.sonorite, B, part, s: 15 / TRACKS[id].bpm, debut: ctx.currentTime + 0.08, i: 0 };

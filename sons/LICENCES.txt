@@ -1,0 +1,75 @@
+LICENCES ET SOURCES DES ENREGISTREMENTS (dossier sons)
+=======================================================
+
+Tous les enregistrements de ce dossier sont sous licence CC0 (domaine public) : usage libre, y compris commercial,
+sans obligation de citer l'auteur. Par politesse, voici d'où ils viennent. Les fichiers .wav ont été convertis
+(mono, 24 kHz, volume égalisé, coupés à 3 secondes au plus) ; les .ogg et .mp3 sont d'origine.
+
+- combat/  : « 150 Game Effect Sounds » (OpenGameArt, https://opengameart.org/node/195932). Le détail des sources
+             de chaque fichier est donné dans le texte ci-dessous (le suffixe _sNN du nom de fichier d'origine).
+- scifi/   : « Sci-Fi Sounds » de Kenney (https://kenney.nl), copie sur OpenGameArt. CC0.
+- rpg/     : « RPG sounds » de Kenney (https://kenney.nl), copie sur OpenGameArt. CC0.
+- digital/ : « Digital SFX set » de Kenney (https://kenney.nl), copie sur OpenGameArt. Utilisable librement.
+- epee/ et choc/ : « 20 sword sound effects (attacks and clashes) » de StarNinjas (OpenGameArt). CC0.
+- monstre/ : « monster sfx pack » (OpenGameArt, https://opengameart.org/content/monster-sound-effects-pack). CC0.
+- crunch/  : « 7 eating crunches » de Tito (OpenGameArt, https://opengameart.org/content/7-eating-crunches). CC0.
+
+--- Texte d'origine du pack « 150 Game Effect Sounds » ---
+
+CC0 SOUND EFFECT LICENSES
+
+All 150 included WAV files are licensed under CC0 1.0 Universal.
+https://creativecommons.org/publicdomain/zero/1.0/
+Legal terms: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+Attribution is not required.
+
+SOURCE IDS
+The postfix in each filename identifies its original source. For example,
+SoundName_s01.wav uses the source credited under s01 below. Files from the same
+source share the same ID.
+
+[s01] Cosmo Myzrail Gorynych - CoMiGo's Bleeps and Bloops
+Source: https://comigo.itch.io/bleeps-n-bloops
+License: CC0 1.0 Universal
+Included sounds: 35
+
+[s02] Kenney - Impact Sounds
+Source: https://kenney.nl/assets/impact-sounds
+License: CC0 1.0 Universal
+Included sounds: 10
+
+[s03] Kenney - RPG Audio
+Source: https://kenney.nl/assets/rpg-audio
+License: CC0 1.0 Universal
+Included sounds: 5
+
+[s04] Kenney - Sci-fi Sounds
+Source: https://kenney.nl/assets/sci-fi-sounds
+License: CC0 1.0 Universal
+Included sounds: 9
+
+[s05] Kronbits - 200 Free SFX
+Source: https://kronbits.itch.io/freesfx
+License: CC0 1.0 Universal
+Included sounds: 26
+
+[s06] lentikula - Basic Spell Impacts
+Source: https://lentikula.itch.io/freecc0-basic-spell-impacts-sfx
+License: CC0 1.0 Universal
+Included sounds: 20
+
+[s07] lentikula - Druid Spell Impacts
+Source: https://lentikula.itch.io/druid-spell-impacts
+License: CC0 1.0 Universal
+Included sounds: 15
+
+[s08] lentikula - Healing Spell Impacts
+Source: https://lentikula.itch.io/healing-spell-impacts
+License: CC0 1.0 Universal
+Included sounds: 15
+
+[s09] lentikula - Sci-Fi Weapon Shots SFX
+Source: https://lentikula.itch.io/sci-fi-weapon-shots-sfx-freecc0
+License: CC0 1.0 Universal
+Included sounds: 15
+

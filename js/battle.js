@@ -243,6 +243,8 @@ window.PA = window.PA || {};
       if (!this.canEvolve() || this.over) return;
       const oldMax = this.run.base.maxHp;
       this.run.age++;
+      if (PA.Fx) PA.Fx.evolue(this);
+      if (PA.Sons) PA.Sons.evolution(this.run.age);   // le petit générique de la montée en âge
       this.game.refreshBaseMax();
       this.run.base.hp += this.run.base.maxHp - oldMax;
       this.shake = 0.4;
@@ -258,6 +260,7 @@ window.PA = window.PA || {};
       if (this.specialCd > 0 || this.over) return;
       const sp = this.playerAge.special;
       this.specialCd = this.specialCooldown();
+      if (PA.Sons) PA.Sons.pouvoir(this.run.age);   // le son de l'ultime de cet âge
       const dmg = sp.dmg * (1 + this.mods.allDmg);
       if (sp.sweep) {
         // Charge : les bêtes partent l'une après l'autre de ta base et traversent toute la ligne.
@@ -321,6 +324,7 @@ window.PA = window.PA || {};
     }
 
     onUnitDeath(u) {
+      if (PA.Fx) PA.Fx.mort(this, u);
       const m = this.mods;
       const e = C.economy;
       if (u.side === -1) {
@@ -349,6 +353,7 @@ window.PA = window.PA || {};
     }
 
     spark(x, y, color, n) {
+      if (PA.Fx) PA.Fx.etincelle(this, x, y, color, n);   // effet du style choisi (version perso)
       for (let i = 0; i < n; i++) {
         this.particles.push({ x, y, vx: rand(-90, 90), vy: rand(-120, 30), life: rand(0.15, 0.35), max: 0.35, color, size: rand(1.5, 3) });
       }
@@ -592,6 +597,7 @@ window.PA = window.PA || {};
     attack(u, target) {
       u.cd = u.interval;
       u.attackAnim = 0.25;
+      if (PA.Sons) PA.Sons.attaque(u);          // le son propre à cette troupe
       if (u.kind === 'melee') {
         if (target) {
           this.damageUnit(target, u.dmg);
@@ -605,6 +611,7 @@ window.PA = window.PA || {};
         const p = u.def.projectile;
         const sx = u.x + u.side * 8;
         const sy = GROUND - u.h * 0.62;
+        if (PA.Fx) PA.Fx.tir(this, sx, sy, u.side);
         this.fire({
           owner: u.side, x: sx, y: sy, target, look: p.look, speed: p.speed, dmg: u.dmg,
           baseX: u.side === 1 ? ENEMY_FRONT + 6 : PLAYER_FRONT - 6,
@@ -647,6 +654,8 @@ window.PA = window.PA || {};
         const dmg = def.dmg * (side === 1 ? 1 + this.mods.turretDmg : this.statMult * C.levels.enemyTurretDmg);
         t.cd = def.interval;
         t.anim = 0.2;
+        if (PA.Fx) PA.Fx.tir(this, pos.x, pos.y - 8, side);
+        if (PA.Sons) PA.Sons.tourelle(def, side, pos.x);   // le tir de la tourelle
         this.fire({ owner: side, x: pos.x, y: pos.y - 8, target, look: def.proj, speed: def.projSpeed, dmg,
           splash: def.splash || 0, arc: !!def.arc, burn: def.burn || null, elem: side === 1 ? this.element : null });
       }
@@ -844,6 +853,7 @@ window.PA = window.PA || {};
 
     updateFx(dt) {
       if (this.shake > 0) this.shake = Math.max(0, this.shake - dt);
+      if (PA.Fx) PA.Fx.maj(this, dt);
       for (const p of this.particles) {
         p.life -= dt;
         if (p.ring) { p.r += (p.maxR / p.max) * dt; continue; }

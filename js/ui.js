@@ -407,12 +407,27 @@ window.PA = window.PA || {};
       const tabs = [['ups', '⚒', 'Améliorations'], ['ages', '⏳', 'Âges'], ['play', '⚔', 'Bataille'], ['elites', '★', 'Élites'], ['speed', '»', 'Vitesse']]
         .map(([id, ic, nom]) => `<button data-action="tab" data-arg="${id}" class="${tab === id ? 'on' : ''}"><i>${ic}</i>${nom}</button>`).join('');
       const aide = `
-        <h3>Musique</h3>
+        <h3>Son</h3>
         <div class="reglage-son">
-          <label for="vol-musique">Volume</label>
+          <label for="vol-musique">Musique</label>
           <input type="range" id="vol-musique" min="0" max="100" value="${Math.round(PA.Music.volume * 100)}">
           <div class="seg">${Object.keys(PA.Music.SONORITES).map(so => `<button data-action="sonorite" data-arg="${so}" class="${PA.Music.sonorite === so ? 'on' : ''}">${PA.Music.SONORITES[so]}</button>`).join('')}</div>
         </div>
+        <div class="reglage-son">
+          <label for="vol-effets">Effets sonores</label>
+          <input type="range" id="vol-effets" min="0" max="100" value="${Math.round(PA.Music.fxVol * 100)}">
+          <div class="seg"><button data-action="effets" data-arg="1" class="${PA.Music.fx ? 'on' : ''}">Oui</button><button data-action="effets" data-arg="0" class="${PA.Music.fx ? '' : 'on'}">Non</button></div>
+        </div>
+        <div class="reglage-son">
+          <label>Style des effets</label>
+          <div class="seg"><button data-action="styleFx" data-arg="synthe" class="${PA.Music.fxMode === 'reel' && PA.Sons.reelDispo() ? '' : 'on'}">Synthétisés</button><button data-action="styleFx" data-arg="reel" class="${PA.Music.fxMode === 'reel' && PA.Sons.reelDispo() ? 'on' : ''}"${PA.Sons.reelDispo() ? '' : ' disabled title="Les enregistrements ne sont pas installés"'}>Enregistrements</button></div>
+          ${PA.Sons.reelDispo() ? '' : '<span class="muted">(enregistrements pas encore installés)</span>'}
+        </div>
+        ${PA.DEV ? `<div class="reglage-son">
+          <label>Effets visuels</label>
+          <div class="seg">${Object.keys(PA.Fx.STYLES).map(s => `<button data-action="styleVisuel" data-arg="${s}" class="${PA.Fx.style === s ? 'on' : ''}">${PA.Fx.STYLES[s]}</button>`).join('')}</div>
+          <span class="muted">(version perso : à essayer en combat)</span>
+        </div>` : ''}
         <h3>Comment jouer</h3>
         <ul class="rules">
           <li>Achète des unités : elles avancent seules et attaquent la première cible devant elles. Les tireurs visent par-dessus tes troupes.</li>
@@ -451,6 +466,9 @@ window.PA = window.PA || {};
         start: () => { this.campTab = 'play'; game.newRun(); },
         diff: d => game.setDifficulty(d),
         musique: (arg, el) => { const on = PA.Music.basculer(); el.classList.toggle('off', !on); },
+        styleVisuel: (s, el) => { PA.Fx.choisir(s); el.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); },
+        styleFx: (mode, el) => { if (mode === 'reel' && !PA.Sons.reelDispo()) return; PA.Music.fxMode = mode; PA.Music.sauver(); if (mode === 'reel') { PA.Music.contexte(); PA.Sons.precharger(); } el.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); if (PA.Music.fx) PA.Sons.apercu('raptor'); },
+        effets: (oui, el) => { PA.Music.fx = oui === '1'; PA.Music.sauver(); el.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); if (PA.Music.fx && PA.Sons) PA.Sons.apercu('raptor'); },
         sonorite: (so, el) => { PA.Music.choisirSonorite(so); el.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); },
         // Outils de test : ne font rien dans la version publique (PA.DEV est faux), même appelés à la main.
         devPP: n => { if (!PA.DEV) return; meta.balance += Number(n) || 1000; PA.Meta.save(meta); this.showCamp(); },
@@ -474,6 +492,11 @@ window.PA = window.PA || {};
       }, true);
       const vol = document.getElementById('vol-musique');
       if (vol) vol.oninput = e => PA.Music.regler(e.target.value / 100);
+      const volFx = document.getElementById('vol-effets');
+      if (volFx) {
+        volFx.oninput = e => PA.Music.reglerFx(e.target.value / 100);
+        volFx.onchange = () => { if (PA.Sons) PA.Sons.apercu('cogneur'); };   // un petit coup pour juger le niveau
+      }
     },
 
     showVictory(d) {

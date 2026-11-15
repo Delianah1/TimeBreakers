@@ -1,0 +1,32 @@
+ENREGISTREMENTS (mode « Enregistrements » des effets sonores)
+================================================================
+
+Ce dossier reste vide tant que les enregistrements ne sont pas installés : le jeu joue alors
+seulement les sons synthétisés (mode « Synthétisés », choisi dans l'aide du camp).
+
+Quand il contient des fichiers audio (.ogg ou .wav) et un catalogue index.json, le bouton
+« Enregistrements » de l'aide devient disponible. Le choix est gardé d'une partie à l'autre.
+
+Catalogue : index.json
+----------------------
+{
+  "licences": "voir LICENCES.txt",
+  "sons": {
+    "raptor": [                       <- id d'une troupe ; « t:silex » pour une tourelle ; « p:3 » pour le pouvoir de l'âge 3
+      { "f": ["morsure/a.ogg", "morsure/b.ogg"],   <- un fichier est tiré au hasard à chaque attaque
+        "g": 0.9,                     <- gain (1 = tel quel)
+        "r": [0.9, 1.1],              <- vitesse de lecture (hauteur), tirée au hasard dans cet intervalle
+        "dt": 0.0,                    <- retard en secondes
+        "de": 0.0, "d": 0.4,          <- début et durée à lire dans le fichier (facultatif)
+        "lp": 6000, "hp": 150 }       <- filtres passe-bas / passe-haut en Hz (facultatif)
+    ]
+  }
+}
+
+Un son absent du catalogue, ou un fichier manquant : le jeu joue la version synthétisée à la place.
+Les montées en âge (génériques) restent toujours synthétisées.
+
+Égalisation du volume : le champ « niveaux » de index.json donne, pour chaque son, un gain mesuré (outils\mesurer-sons.js, Mesures.niveauxReel()).
+Si tu régénères le catalogue (outils\preparer-enregistrements.ps1), refais cette mesure et recolle le champ « niveaux ».
+
+Origine des fichiers : voir LICENCES.txt. Les choix de fichiers pour chaque troupe ont été faits d'après les NOMS des fichiers, sans écoute : à ajuster à l'oreille.

@@ -93,6 +93,7 @@ window.PA = window.PA || {};
       if (b.sweeps) for (const s of b.sweeps) if (s.delay <= 0) this.sweep(ctx, s);
       if (b.airship) this.airship(ctx, b.airship);
       this.particles(ctx, b);
+      if (PA.Fx) PA.Fx.dessiner(ctx, b);
       this.texts(ctx, b);
       ctx.restore();
 
@@ -912,7 +913,7 @@ window.PA = window.PA || {};
       }
       const hw = u.w / s / 2;   // demi-largeur dans le repère du dessin
       // Glace : une gangue bleutée et des cristaux aux pieds.
-      if (u.chill) {
+      if (u.chill && !(PA.Fx && PA.Fx.glace(ctx, hw, baseH))) {
         ctx.fillStyle = 'rgba(170,230,255,0.28)';
         ctx.beginPath(); ctx.ellipse(0, -baseH * 0.5, hw * 1.15, baseH * 0.56, 0, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = 'rgba(220,245,255,0.7)'; ctx.lineWidth = 1.2; ctx.stroke();
@@ -923,7 +924,7 @@ window.PA = window.PA || {};
         }
       }
       // Brûlure : des flammes qui dansent.
-      if (u.burn) {
+      if (u.burn && !(PA.Fx && PA.Fx.flammes(ctx, hw, baseH, performance.now() / 1000 + u.x * 0.01))) {
         for (let i = 0; i < 3; i++) {
           const x = hw * (-0.55 + i * 0.55), y = -baseH * (0.42 + 0.14 * (i % 2));
           const fh = 15 + Math.random() * 9;
@@ -1962,13 +1963,16 @@ window.PA = window.PA || {};
     },
 
     particles(ctx, b) {
+      const nouveau = PA.Fx && PA.Fx.actif();   // un autre style d'effets remplace les carrés et les anneaux d'avant
       for (const p of b.particles) {
+        if (nouveau && !p.bolt) continue;
         const a = Math.max(0, p.life / p.max);
         if (p.ring) {
           ctx.strokeStyle = p.color; ctx.globalAlpha = a; ctx.lineWidth = 3;
           ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r, p.r * 0.35, 0, 0, Math.PI * 2); ctx.stroke();
         } else if (p.bolt) {
           // Éclair de la Foudre : un halo large, puis un trait fin et blanc.
+          if (PA.Fx && PA.Fx.eclair(ctx, p.pts, a)) { ctx.globalAlpha = 1; continue; }
           const path = () => { ctx.beginPath(); p.pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); };
           ctx.lineJoin = 'round';
           ctx.strokeStyle = p.color; ctx.globalAlpha = a * 0.45; ctx.lineWidth = 6; path(); ctx.stroke();

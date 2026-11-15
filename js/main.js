@@ -25,6 +25,8 @@ window.PA = window.PA || {};
       this.meta = PA.Meta.load(PA.Meta.loadPref());   // la campagne (difficulté) jouée la dernière fois
       // Musique : réglages du joueur ; le son démarre au premier appui (règle des navigateurs).
       PA.Music.charger();
+      PA.Fx.charger();
+      PA.Sons.chargerReel();      // cherche les enregistrements (dossier sons/) ; sans eux, tout reste synthétisé
       for (const ev of ['pointerdown', 'touchstart', 'keydown']) addEventListener(ev, () => PA.Music.debloquer(), { once: true });
       PA.Render.init(document.getElementById('canvas'));
       PA.UI.init(this);
@@ -153,6 +155,8 @@ window.PA = window.PA || {};
         assaultWave: 0,    // vagues franchies
       };
       this.run.gold = C.economy.startGold + this.mods().startGold;
+      // Version perso : assez d'XP dès le départ pour évoluer jusqu'au dernier âge jouable (le bouton Évoluer reste libre).
+      if (PA.DEV && this.playableAges > 1) this.run.xp = C.evolveXp[this.playableAges - 2];
       this.refreshBaseMax();
       this.run.base.hp = this.run.base.maxHp;
       meta.runs++;
