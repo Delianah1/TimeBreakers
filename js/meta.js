@@ -26,6 +26,8 @@ PA.Meta = {
   defaults(difficulty) {
     return { balance: 0, totalEarned: 0, upgrades: {}, agesUnlocked: 0, runs: 0, bestWave: 0, bestLevel: 0,
       elites: {},     // unités d'élite débloquées : { id de l'unité: true }
+      powers: {},     // pouvoirs ultimes achetés : { id du pouvoir: true } (js/pouvoirs.js)
+      powerPick: {},  // pouvoir équipé par âge : { id de l'âge: id du pouvoir } (rien = le pouvoir de contrôle)
       maxSpeed: 1,    // vitesse de jeu la plus haute achetée (1, 2 ou 3)
       agesV: 2,       // version de la liste des âges (2 = 11 âges, avec Antiquité et Vapeur)
       difficulty: difficulty || 'facile' };   // la campagne à laquelle appartient cette sauvegarde

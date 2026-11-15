@@ -66,6 +66,13 @@ window.PA = window.PA || {};
           location.search = '?demo=' + C.ages[i].id;
           return;
         }
+        // Vitrine : U passe au pouvoir suivant de l'âge (les quatre sont débloqués).
+        if (game.demo && k === 'u') {
+          const L = PA.Pouvoirs.liste(game.run.age), i = L.indexOf(b.special), p = L[(i + 1) % L.length];
+          game.meta.powerPick[C.ages[game.run.age].id] = p.id; b.specialCd = 0;
+          this.toast(`Pouvoir : ${p.name} (${p.genre})`);
+          return;
+        }
         if (game.paused) return;
         if (k === '1' || k === '2' || k === '3' || k === '4') b.buyUnit(Number(k) - 1);
         else if (k === 'a' || k === 'z' || k === 'e') b.buyTurret({ a: 0, z: 1, e: 2 }[k]);
@@ -275,7 +282,7 @@ window.PA = window.PA || {};
       }
 
       // Pouvoir spécial : le bouton se remplit de bas en haut pendant la recharge.
-      const sp = C.ages[run.age].special;
+      const sp = b.special;                               // le pouvoir équipé pour cet âge (js/pouvoirs.js)
       const spBtn = this.el['btn-special'];
       const ready = b.specialCd <= 0;
       spBtn.classList.toggle('ready', ready);
@@ -374,6 +381,20 @@ window.PA = window.PA || {};
           `<div class="desc">${def.desc} · ${role} · ${fmt(def.hp)} PV · ${fmt(def.cost)} or</div></div>${btn}</div>`;
       }).join('');
 
+      // Pouvoirs ultimes : quatre par âge. Celui de contrôle est donné, les trois autres s'achètent ; un seul est équipé.
+      const pouvoirs = C.ages.map((age, i) => {
+        const prix = PA.Pouvoirs.cout(i), equipe = PA.Pouvoirs.choisi(meta, i);
+        const cartes = PA.Pouvoirs.liste(i).map(p => {
+          let btn;
+          if (i >= playable) btn = `<button disabled title="Débloque d’abord l’âge ${P.ageNames[i]}">🔒</button>`;
+          else if (p === equipe) btn = '<span class="good">Équipé</span>';
+          else if (PA.Pouvoirs.possede(meta, i, p.id)) btn = `<button data-action="equiperPouvoir" data-arg="${i}|${p.id}">Équiper</button>`;
+          else btn = `<button data-action="acheterPouvoir" data-arg="${i}|${p.id}" ${meta.balance < prix ? 'disabled' : ''}>${fmt(prix)} ✦</button>`;
+          return `<div class="upgrade pouvoir-carte${p === equipe && i < playable ? ' on' : ''}"><div><div class="name">${p.name} <span class="genre g-${p.genre.toLowerCase().replace('ô', 'o')}">${p.genre}</span></div><div class="desc">${p.desc}</div></div>${btn}</div>`;
+        }).join('');
+        return `<h3 class="pouvoir-age${i >= playable ? ' verrou' : ''}">${P.ageNames[i]}</h3>${cartes}`;
+      }).join('');
+
       // Vitesses de jeu, dans l'ordre : ×2 puis ×3.
       const ms = PA.Meta.maxSpeed(meta);
       const speeds = P.speedCosts.map((cost, k) => {
@@ -402,9 +423,10 @@ window.PA = window.PA || {};
         ups: `<p class="camp-hint">Bonus permanents, valables à chaque run. Débloquer des âges relève le plafond.</p><div class="upgrades">${ups}</div>`,
         ages: `<p class="camp-hint">Chaque âge débloqué ajoute 5 niveaux à la run. Ils s’achètent dans l’ordre.</p><div class="ages">${ages}</div>`,
         elites: `<p class="camp-hint">La 4e unité de chaque âge : dégâts de zone, réservée à ton armée.</p><div class="upgrades">${elites}</div>`,
+        pouvoirs: `<p class="camp-hint">Un pouvoir équipé par âge. Celui de contrôle est offert ; les trois autres s’achètent une fois l’âge débloqué.</p><div class="upgrades pouvoirs">${pouvoirs}</div>`,
         speed: `<p class="camp-hint">Accélère le combat. Ne change ni l’or, ni l’XP, ni le prestige.</p><div class="upgrades">${speeds}</div>`,
       };
-      const tabs = [['ups', '⚒', 'Améliorations'], ['ages', '⏳', 'Âges'], ['play', '⚔', 'Bataille'], ['elites', '★', 'Élites'], ['speed', '»', 'Vitesse']]
+      const tabs = [['ups', '⚒', 'Améliorations'], ['ages', '⏳', 'Âges'], ['play', '⚔', 'Bataille'], ['elites', '★', 'Élites'], ['pouvoirs', '✦', 'Pouvoirs'], ['speed', '»', 'Vitesse']]
         .map(([id, ic, nom]) => `<button data-action="tab" data-arg="${id}" class="${tab === id ? 'on' : ''}"><i>${ic}</i>${nom}</button>`).join('');
       const aide = `
         <h3>Son</h3>
@@ -440,6 +462,7 @@ window.PA = window.PA || {};
           <li>Après le dernier niveau vient l’<b>assaut final</b>, qui ne s’arrête jamais. Toutes les ${C.assault.windowEvery} vagues, tu choisis : te retirer (tu gardes tout) ou continuer (multiplicateur plus élevé).</li>
           <li>Si ta base tombe, tu perds ${pct(loss)} des points qui ne sont pas encore à l’abri. Les points d’un niveau sont mis à l’abri quand tu le termines.</li>
           <li>Les âges suivants s’<b>achètent</b> ici avec tes points de prestige. Chaque âge débloqué ajoute 5 niveaux à la run et relève peu à peu le plafond des améliorations (niveau ${C.prestige.upgradeCapByAges[2]} au départ, ${C.prestige.upgradeCapByAges[C.prestige.upgradeCapByAges.length - 1]} avec les ${C.ages.length} âges).</li>
+          <li>Chaque âge a quatre <b>pouvoirs ✦</b> : celui de contrôle est offert, les trois autres s’achètent ici. Tu en équipes un seul par âge.</li>
           <li>Chaque âge a aussi une <b>unité d’élite ★</b> (touche 4) qui frappe en zone. Elle s’achète ici une fois l’âge débloqué, et l’ennemi n’en a pas.</li>
         </ul>
         ${PA.DEV ? `<details class="dev">
@@ -449,7 +472,7 @@ window.PA = window.PA || {};
             <button data-action="devPP" data-arg="1000">+1 000 ✦</button>
             <button data-action="devPP" data-arg="100000">+100 000 ✦</button>
             <button data-action="devAges">Débloquer tous les âges</button>
-            <button data-action="devElites">Élites + vitesses</button>
+            <button data-action="devElites">Élites + vitesses + pouvoirs</button>
           </div>
         </details>` : ''}
         <div class="actions"><button class="danger" data-action="reset">Réinitialiser la progression (${D.name})</button></div>`;
@@ -478,11 +501,14 @@ window.PA = window.PA || {};
           meta.elites = {};
           C.ages.forEach((a, i) => { const d = PA.Meta.eliteDef(i); if (d) meta.elites[d.id] = true; });
           meta.maxSpeed = 1 + C.prestige.speedCosts.length;
+          PA.Pouvoirs.toutDebloquer(meta);
           PA.Meta.save(meta); this.showCamp();
         },
         buyAge: () => { PA.Meta.buyAge(meta); this.showCamp(); },
         buy: id => { PA.Meta.buyUpgrade(meta, id); this.showCamp(); },
         buyElite: i => { PA.Meta.buyElite(meta, Number(i)); this.showCamp(); },
+        acheterPouvoir: a => { const [i, id] = a.split('|'); PA.Pouvoirs.acheter(meta, Number(i), id); this.showCamp(); },
+        equiperPouvoir: a => { const [i, id] = a.split('|'); PA.Pouvoirs.equiper(meta, Number(i), id); this.showCamp(); },
         buySpeed: () => { PA.Meta.buySpeed(meta); this.showCamp(); },
         reset: (arg, el) => {
           if (el.dataset.confirm) { game.meta = PA.Meta.reset(meta.difficulty); this.showCamp(); return; }

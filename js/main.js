@@ -47,6 +47,9 @@ window.PA = window.PA || {};
       const meta = this.meta = PA.Meta.defaults();
       meta.agesUnlocked = C.ages.length;
       C.ages.forEach((a, i) => { const d = PA.Meta.eliteDef(i); if (d) meta.elites[d.id] = true; });
+      // vitrine : tous les pouvoirs sont débloqués, celui d'origine est équipé (touche U : passer au suivant)
+      PA.Pouvoirs.toutDebloquer(meta);
+      C.ages.forEach(a => { meta.powerPick[a.id] = a.special.id; });
       meta.maxSpeed = 1 + C.prestige.speedCosts.length;
       this.playableAges = C.ages.length;
       this.totalLevels = this.playableAges * C.levels.perAge;

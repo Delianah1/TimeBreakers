@@ -155,7 +155,8 @@ window.PA = window.PA || {};
 
     unitCost(def) { return Math.max(1, Math.round(def.cost * (1 + this.mods.unitCost))); }
     trainTime(def) { return def.train * (1 + this.mods.trainTime); }
-    specialCooldown() { return this.playerAge.special.cooldown * (1 + this.mods.specialCd); }
+    // this.special : le pouvoir équipé pour l'âge en cours (js/pouvoirs.js).
+    specialCooldown() { return this.special.cooldown * (1 + this.mods.specialCd); }
     assaultMult(waveN) {
       const n = waveN == null ? this.wave.n : waveN;
       return 1 + C.assault.multiplierStep * Math.floor(Math.max(0, n - 1) / C.assault.windowEvery);
@@ -258,9 +259,11 @@ window.PA = window.PA || {};
 
     useSpecial() {
       if (this.specialCd > 0 || this.over) return;
-      const sp = this.playerAge.special;
+      const sp = this.special;
       this.specialCd = this.specialCooldown();
       if (PA.Sons) PA.Sons.pouvoir(this.run.age);   // le son de l'ultime de cet âge
+      // Pouvoirs de contrôle, de frappe et de renfort (js/pouvoirs.js) : leurs dégâts suivent ceux du pouvoir d'origine de l'âge.
+      if (sp.type) return this.lancerPouvoir(sp, this.playerAge.special.dmg * (1 + this.mods.allDmg));
       const dmg = sp.dmg * (1 + this.mods.allDmg);
       if (sp.sweep) {
         // Charge : les bêtes partent l'une après l'autre de ta base et traversent toute la ligne.
@@ -304,6 +307,7 @@ window.PA = window.PA || {};
     // quiet : pas de flash blanc (brûlure, sinon l'unité clignoterait en continu)
     damageUnit(u, dmg, quiet) {
       if (u.dead) return;
+      if (u.side === 1 && this.pw && this.pw.guard > 0) dmg *= 1 - this.pw.guardK;   // Formation tortue, Bouclier d'énergie
       u.hp -= dmg;
       if (!quiet) u.flash = 0.1;
       if (u.hp <= 0) {
@@ -314,6 +318,7 @@ window.PA = window.PA || {};
 
     damageBase(side, dmg) {
       if (side === 1) {
+        if (this.pw && this.pw.guard > 0) dmg *= 1 - this.pw.guardK;
         this.run.base.hp -= dmg;
         this.shake = Math.max(this.shake, 0.12);
       } else if (!this.enemyBase.invulnerable) {
@@ -377,6 +382,7 @@ window.PA = window.PA || {};
       this.updateTurrets(-1, this.enemyTurrets, dt);
       this.updateProjectiles(dt);
       this.updateDrops(dt);
+      if (this.majPouvoirs) this.majPouvoirs(dt);
       this.updateFx(dt);
 
       this.pu = this.pu.filter(u => !u.dead);
@@ -549,6 +555,9 @@ window.PA = window.PA || {};
           if (u.burn.t <= 0) u.burn = null;
           if (u.dead) continue;
         }
+        // Pouvoirs : unité à durée limitée (champion appelé, ennemi retourné), puis unité figée.
+        if (u.ttl != null) { u.ttl -= dt; if (u.ttl <= 0) { PA.Pouvoirs.expire(this, u); continue; } }
+        if (u.stun > 0) { u.stun -= dt; u.moving = false; continue; }
         // Glace : le temps passe moins vite pour l'unité (déplacement et recharge).
         let udt = dt;
         if (u.chill) {
@@ -556,7 +565,7 @@ window.PA = window.PA || {};
           u.chill.t -= dt;
           if (u.chill.t <= 0) u.chill = null;
         }
-        u.cd -= udt;
+        u.cd -= udt * (side === 1 && this.pw && this.pw.haste > 0 ? 2 : 1);   // Feu sacré : tes unités frappent deux fois plus vite
 
         // Cible : l'unité ennemie la plus avancée, ou la base si elle est plus proche.
         const dBase = side === 1 ? foeBaseFront - u.front : u.front - foeBaseFront;
@@ -597,6 +606,10 @@ window.PA = window.PA || {};
     attack(u, target) {
       u.cd = u.interval;
       u.attackAnim = 0.25;
+      if (u.side === -1 && this.pw && this.pw.blind > 0) {   // Rideau de fumée : le coup part dans le vide
+        if (Math.random() < 0.5) this.texts.push({ x: u.x, y: GROUND - u.h - 14, text: 'raté', life: 0.7, color: '#dfe6f2' });
+        return;
+      }
       if (PA.Sons) PA.Sons.attaque(u);          // le son propre à cette troupe
       if (u.kind === 'melee') {
         if (target) {
@@ -642,7 +655,9 @@ window.PA = window.PA || {};
       for (let i = 0; i < turrets.length; i++) {
         const t = turrets[i];
         if (!t) continue;
-        t.cd -= dt;
+        const pw = this.pw;
+        if (pw && side === -1 && (pw.blind > 0 || pw.turretOff > 0)) continue;   // Rideau de fumée, Impulsion électromagnétique
+        t.cd -= dt * (pw && side === 1 && pw.turretHaste > 0 ? 3 : 1);            // Surpression
         if (t.cd > 0) continue;
         const target = foes.find(f => !f.dead);
         if (!target) continue;
@@ -817,6 +832,7 @@ window.PA = window.PA || {};
           this.spark(d.x, GROUND - 6, fx.color, fx.sparks);
           if (fx.ring) this.particles.push({ ring: true, x: d.x, y: GROUND - 6, r: 4, maxR: d.radius, life: 0.35, max: 0.35, color: fx.color });
           if (fx.shake) this.shake = Math.max(this.shake, fx.shake);
+          if (d.apres) d.apres(d);                 // Éruption : la bombe de lave laisse une flaque
         }
       }
       this.drops = this.drops.filter(d => !d.dead);
@@ -834,6 +850,10 @@ window.PA = window.PA || {};
         if (s.delay > 0) { s.delay -= dt; continue; }
         s.x += s.speed * dt;
         s.walk += dt * 14;
+        if (s.explode) {                           // Baril de poudre : il explose au premier contact
+          if (s.x > ENEMY_FRONT - 30 || this.eu.some(f => !f.dead && Math.abs(f.x - s.x) <= f.w / 2 + 20)) { PA.Pouvoirs.explose(this, s.x, s.explode, s.dmg); s.dead = true; }
+          continue;
+        }
         for (const f of this.eu) {
           if (f.dead || s.hit.has(f) || Math.abs(f.x - s.x) > f.w / 2 + 26) continue;
           s.hit.add(f);

@@ -543,6 +543,8 @@ PA.CONFIG = {
     // Prix ≈ ce que rapporte une run au moment où l'âge s'ouvre. L'IA ennemie n'en a pas.
     // L'Ankylosaure est moins cher : on quitte vite le Jurassique, il sert peu longtemps.
     eliteCosts: [300, 800, 1500, 2500, 4000, 6000, 8000, 10000, 14000, 18000, 25000],
+    // Prix d'un pouvoir ultime à acheter (origine, frappe, renfort), par âge : la moitié du prix de l'élite.
+    powerCosts: [150, 400, 750, 1250, 2000, 3000, 4000, 5000, 7000, 9000, 12500],
     // Vitesses de jeu : ×2 puis ×3, achetées dans l'ordre. Le temps de jeu ne change pas
     // (bonus de rapidité compris) : seul le temps réel passé devant l'écran baisse.
     speedCosts: [250, 2500],

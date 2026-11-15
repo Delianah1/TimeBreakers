@@ -85,6 +85,7 @@ window.PA = window.PA || {};
       this.turrets(ctx, b, -1, b.enemyTurrets);
 
       this.elemColor = b.element ? C.elements[b.element].color : null;
+      if (PA.Pouvoirs) PA.Pouvoirs.sol(ctx, b);           // pouvoirs : ce qui est posé au sol (fosse, flaques, mines)
       const all = b.pu.concat(b.eu).sort((u, v) => u.x - v.x);
       for (const u of all) this.unit(ctx, u);
       for (const u of all) this.unitBar(ctx, u);
@@ -92,6 +93,7 @@ window.PA = window.PA || {};
       for (const d of b.drops) if (d.delay <= 0 && d.x != null) this.drop(ctx, d);
       if (b.sweeps) for (const s of b.sweeps) if (s.delay <= 0) this.sweep(ctx, s);
       if (b.airship) this.airship(ctx, b.airship);
+      if (PA.Pouvoirs) PA.Pouvoirs.dessiner(ctx, b);      // pouvoirs : flammes, nuages, dômes, vaisseaux
       this.particles(ctx, b);
       if (PA.Fx) PA.Fx.dessiner(ctx, b);
       this.texts(ctx, b);
@@ -1857,6 +1859,7 @@ window.PA = window.PA || {};
 
     // Charge des éléphants : la bête court vers l'ennemi, avec un halo doré pour la distinguer des unités.
     sweep(ctx, s) {
+      if (PA.Pouvoirs && s.look !== 'elephant' && PA.Pouvoirs.charge(ctx, s)) return;
       if (this.art && this.art.fx.sweep) return this.art.fx.sweep(ctx, s, TEAM[1], TEAM_DARK[1], this);
       ctx.save();
       ctx.translate(s.x, GROUND);
@@ -1900,6 +1903,7 @@ window.PA = window.PA || {};
     },
 
     drop(ctx, d) {
+      if (PA.Pouvoirs && PA.Pouvoirs.chute(ctx, d)) return;
       const dropArt = this.art && this.art.drops[d.look];
       if (dropArt) return dropArt(ctx, d);
       if (d.look === 'rock') {

@@ -430,9 +430,10 @@ window.PA = window.PA || {};
     },
 
     // Rendu hors ligne (plus vite que le temps réel) : pour mesurer le niveau ou exporter un fichier.
-    render(id, sonorite, secondes) {
+    // bpm (facultatif) : tempo imposé, pour un montage vidéo plus rapide que le morceau du jeu.
+    render(id, sonorite, secondes, bpm) {
       const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-      const part = this.partition(id), s = 15 / TRACKS[id].bpm;
+      const part = this.partition(id), s = 15 / (bpm || TRACKS[id].bpm);
       const duree = secondes || part.len * s;
       const ctx = new OAC(2, Math.ceil(duree * 44100), 44100);
       const B = banc(ctx, sonorite || this.sonorite, this.volume);
