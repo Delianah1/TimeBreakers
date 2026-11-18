@@ -86,6 +86,7 @@
     tire(ctx, -26, -9, 9.4, spin); tire(ctx, -8.6, -9, 9.4, spin + 0.4); tire(ctx, 20, -9, 9.4, spin + 0.9);
     ctx.restore();
   }
+  K.tire = tire; K.shoulderSpikes = shoulderSpikes;
   A.units.camion = { h: 50, draw(ctx, u, team, dark, atk, R) { rig(ctx, u, team, dark, atk, {}, R); } };
   A.units['seigneur-ruines'] = { h: 50, draw(ctx, u, team, dark, atk, R) { rig(ctx, u, team, dark, atk, { crown: true }, R); } };
 

@@ -111,6 +111,7 @@ window.PA = window.PA || {};
       this.cagnotte = 0;      // cagnotte de l'assaut final
       this.shake = 0;
 
+      for (const t of this.run.turrets) if (t) t.pirate = 0;   // tourelle piratée par l'IA-mère : jamais d'un combat à l'autre
       const L = C.levels;
       const D = this.diff = PA.diff(this.meta);   // réglages de la difficulté (facile / difficile)
       // Puissance des ennemis selon la difficulté : une base, plus un supplément par âge ennemi
@@ -147,6 +148,10 @@ window.PA = window.PA || {};
     // ---------------------------------------------------------------- outils
     get playerAge() { return C.ages[this.run.age]; }
     get enemyAgeDef() { return C.ages[this.enemyAge]; }
+    // Le champion de l'âge ennemi pour cette run (tiré au sort au début de la run, js/champions.js).
+    get champDef() {
+      return this._champ || (this._champ = PA.Champions ? PA.Champions.def(this.run, this.enemyAge) : this.enemyAgeDef.champion);
+    }
 
     // Or par seconde, uniquement grâce à l'amélioration « Collecteurs ».
     passiveGold() { return this.mods.passiveGold * C.economy.passiveGoldPerLevel[this.run.age]; }
@@ -300,13 +305,16 @@ window.PA = window.PA || {};
       const m = statMult || this.statMult;
       const u = new Unit(def, -1, def.hp * m, def.dmg * m, this.enemyAge, isChampion);
       this.eu.push(u);
+      if (isChampion && def.cap && PA.Champions) PA.Champions.nait(this, u);
       return u;
     }
 
     // ----------------------------------------------------------------- dégâts
     // quiet : pas de flash blanc (brûlure, sinon l'unité clignoterait en continu)
-    damageUnit(u, dmg, quiet) {
-      if (u.dead) return;
+    // src : d'où vient le coup ('melee', 'tir', 'zone', 'brulure' ; rien = pouvoir ou explosion), pour les armures des champions.
+    damageUnit(u, dmg, quiet, src) {
+      if (u.dead || u.cache) return;
+      if (u.cs) dmg = PA.Champions.subit(this, u, dmg, src);
       if (u.side === 1 && this.pw && this.pw.guard > 0) dmg *= 1 - this.pw.guardK;   // Formation tortue, Bouclier d'énergie
       u.hp -= dmg;
       if (!quiet) u.flash = 0.1;
@@ -330,9 +338,11 @@ window.PA = window.PA || {};
 
     onUnitDeath(u) {
       if (PA.Fx) PA.Fx.mort(this, u);
+      if (PA.Champions) PA.Champions.mort(this, u);
       const m = this.mods;
       const e = C.economy;
-      if (u.side === -1) {
+      if (u.clone) return;                          // fausse Reine des ombres : ni or ni prestige
+      if (u.side === -1 && !u.retourne) {
         const gold = u.cost * e.killGoldMult * (1 + m.goldGain);
         this.run.gold += gold;
         this.run.xp += u.cost * e.killXpMult * (1 + m.xpGain);
@@ -383,6 +393,7 @@ window.PA = window.PA || {};
       this.updateProjectiles(dt);
       this.updateDrops(dt);
       if (this.majPouvoirs) this.majPouvoirs(dt);
+      if (PA.Champions) PA.Champions.maj(this, dt);
       this.updateFx(dt);
 
       this.pu = this.pu.filter(u => !u.dead);
@@ -478,7 +489,7 @@ window.PA = window.PA || {};
       }
       if (this.isBoss) {
         ai.champT -= dt;
-        const champ = this.enemyAgeDef.champion;
+        const champ = this.champDef;
         if (ai.champT <= 0 && this.canSpawn(-1, champ.w)) {
           this.spawnEnemy(champ, true);
           ai.champT = L.championEvery;
@@ -499,7 +510,7 @@ window.PA = window.PA || {};
       if (wv.n < 2) w[2] = 0;
       wv.toSpawn = [];
       for (let i = 0; i < count; i++) wv.toSpawn.push({ def: this.enemyAgeDef.units[pickWeighted(w)], champion: false });
-      if (wv.n % A.windowEvery === 0) wv.toSpawn.push({ def: this.enemyAgeDef.champion, champion: true });
+      if (wv.n % A.windowEvery === 0) wv.toSpawn.push({ def: this.champDef, champion: true });
       wv.state = 'spawning';
       wv.spawnT = 0;
       this.game.toast(`Vague ${wv.n}`);
@@ -546,17 +557,18 @@ window.PA = window.PA || {};
       for (let i = 0; i < list.length; i++) {
         const u = list[i];
         if (u.dead) continue;
-        const foeFront = foes.find(f => !f.dead) || null;
+        const foeFront = this.choisir(u, foes, side);
         if (u.flash > 0) u.flash -= dt;
         if (u.attackAnim > 0) u.attackAnim -= dt;
         if (u.burn) {
-          this.damageUnit(u, u.burn.dps * dt, true);
+          this.damageUnit(u, u.burn.dps * dt, true, 'brulure');
           u.burn.t -= dt;
           if (u.burn.t <= 0) u.burn = null;
           if (u.dead) continue;
         }
         // Pouvoirs : unité à durée limitée (champion appelé, ennemi retourné), puis unité figée.
         if (u.ttl != null) { u.ttl -= dt; if (u.ttl <= 0) { PA.Pouvoirs.expire(this, u); continue; } }
+        if (u.pilote) continue;                      // champion en plein saut, charge, rapt ou sous terre (js/champions.js)
         if (u.stun > 0) { u.stun -= dt; u.moving = false; continue; }
         // Glace : le temps passe moins vite pour l'unité (déplacement et recharge).
         let udt = dt;
@@ -578,20 +590,25 @@ window.PA = window.PA || {};
           if (dUnit <= dBase) { target = foeFront; dist = dUnit; }
         }
 
-        let canMove = true;
+        let canMove = !u.ancre;
         if (dist <= u.reach) {
           canMove = false;
           if (u.cd <= 0) this.attack(u, target);
         }
 
         let maxStep = Math.max(0, dist - 1);
-        if (canMove && i > 0) {
-          const ahead = list[i - 1];
-          const gap = side === 1
-            ? (ahead.x - ahead.w / 2) - u.front
-            : u.front - (ahead.x + ahead.w / 2);
-          if (gap <= GAP) canMove = false;
-          else maxStep = Math.min(maxStep, gap - GAP);
+        // On ne bute que sur l'unité alliée au sol juste devant (pas sur un volant, une unité sous terre ou en l'air).
+        // Un volant ne bute sur personne.
+        if (canMove && !u.vol) {
+          let ahead = null;
+          for (let j = i - 1; j >= 0; j--) { const a = list[j]; if (!a.dead && !a.vol && !a.cache && !a.pilote && !a.chute) { ahead = a; break; } }
+          if (ahead) {
+            const gap = side === 1
+              ? (ahead.x - ahead.w / 2) - u.front
+              : u.front - (ahead.x + ahead.w / 2);
+            if (gap <= GAP) canMove = false;
+            else maxStep = Math.min(maxStep, gap - GAP);
+          }
         }
 
         u.moving = canMove && maxStep > 0.01;
@@ -603,30 +620,48 @@ window.PA = window.PA || {};
       }
     }
 
+    // L'unité ennemie que u vise : la plus avancée, sauf celles qu'on ne peut pas atteindre
+    // (sous terre, en train de tomber, emportée ; volante pour la mêlée du joueur ; loin derrière soi).
+    // Un volant « survol » (Machine volante) ignore les unités et file vers la base.
+    choisir(u, foes, side) {
+      if (u.survol) return null;
+      for (const f of foes) {
+        if (f.dead || f.cache || f.chute || f.porte) continue;
+        if (f.vol && side === 1 && u.kind === 'melee') continue;
+        if (side * (f.x - u.x) < -(f.w + u.w) / 2) continue;
+        return f;
+      }
+      return null;
+    }
+
     attack(u, target) {
-      u.cd = u.interval;
+      u.cd = u.interval * (u.enrage ? 0.5 : 1);
       u.attackAnim = 0.25;
       if (u.side === -1 && this.pw && this.pw.blind > 0) {   // Rideau de fumée : le coup part dans le vide
         if (Math.random() < 0.5) this.texts.push({ x: u.x, y: GROUND - u.h - 14, text: 'raté', life: 0.7, color: '#dfe6f2' });
         return;
       }
       if (PA.Sons) PA.Sons.attaque(u);          // le son propre à cette troupe
+      // dmgK : bonus des champions (aura du Roi sorcier, Colosse vert) ; salve : tir commandé par le Capitaine.
+      const dmg = u.dmg * (u.dmgK || 1) * (u.salve ? 1.5 : 1);
+      u.salve = false;
+      if (u.cs) PA.Champions.frappe(this, u, target);
       if (u.kind === 'melee') {
         if (target) {
-          this.damageUnit(target, u.dmg);
-          if (u.side === 1) this.applyElement(target, u.dmg, true);
-          this.spark(target.x - u.side * target.w / 2, GROUND - target.h * 0.55, this.hitColor(u.side), 3);
+          this.damageUnit(target, dmg, false, 'melee');
+          if (u.side === 1) this.applyElement(target, dmg, true);
+          this.spark(target.x - u.side * target.w / 2, GROUND - (target.alt || 0) - target.h * 0.55, this.hitColor(u.side), 3);
         } else {
-          this.damageBase(-u.side, u.dmg);
+          this.damageBase(-u.side, dmg);
         }
         if (u.def.splash) this.meleeSplash(u, target);
       } else {
         const p = u.def.projectile;
         const sx = u.x + u.side * 8;
-        const sy = GROUND - u.h * 0.62;
+        const sy = GROUND - (u.alt || 0) - u.h * 0.62;
         if (PA.Fx) PA.Fx.tir(this, sx, sy, u.side);
         this.fire({
-          owner: u.side, x: sx, y: sy, target, look: p.look, speed: p.speed, dmg: u.dmg,
+          owner: u.side, x: sx, y: sy, target, look: p.look, speed: p.speed, dmg,
           baseX: u.side === 1 ? ENEMY_FRONT + 6 : PLAYER_FRONT - 6,
           elem: u.side === 1 ? this.element : null,
           // Unités d'élite : tir en zone, éventuellement en cloche ou incendiaire.
@@ -643,7 +678,7 @@ window.PA = window.PA || {};
       const r = u.def.splash;
       for (const f of foes) {
         if (f === target || f.dead || Math.abs(f.x - cx) > r + f.w / 2) continue;
-        this.damageUnit(f, u.dmg);
+        this.damageUnit(f, u.dmg, false, 'melee');
         if (u.side === 1) this.applyElement(f, u.dmg, false);
       }
       this.particles.push({ ring: true, x: cx, y: GROUND - 4, r: 4, maxR: r, life: 0.3, max: 0.3, color: '#e8d9b0' });
@@ -658,8 +693,20 @@ window.PA = window.PA || {};
         const pw = this.pw;
         if (pw && side === -1 && (pw.blind > 0 || pw.turretOff > 0)) continue;   // Rideau de fumée, Impulsion électromagnétique
         t.cd -= dt * (pw && side === 1 && pw.turretHaste > 0 ? 3 : 1);            // Surpression
+        if (t.pirate > 0) {
+          // Piratée par l'IA-mère : elle tire sur tes propres unités, les plus proches de ta base d'abord.
+          t.pirate -= dt;
+          if (t.cd > 0) continue;
+          const tg = this.pu.slice().reverse().find(f => !f.dead && !f.cache && !f.porte && !f.chute);
+          if (!tg) continue;
+          const def = C.ages[t.age].turrets[t.idx], pos = this.turretPos(side, i);
+          t.cd = def.interval; t.anim = 0.2;
+          this.fire({ owner: -1, x: pos.x, y: pos.y - 8, target: tg, look: def.proj, speed: def.projSpeed, dmg: def.dmg * 0.6,
+            splash: def.splash || 0, arc: !!def.arc, burn: null, elem: null });
+          continue;
+        }
         if (t.cd > 0) continue;
-        const target = foes.find(f => !f.dead);
+        const target = foes.find(f => !f.dead && !f.cache && !f.porte && !f.chute);
         if (!target) continue;
         const def = C.ages[t.age].turrets[t.idx];
         const pos = this.turretPos(side, i);
@@ -703,7 +750,7 @@ window.PA = window.PA || {};
         } else {
           let tx, ty;
           if (p.target && !p.target.dead) {
-            tx = p.target.x; ty = GROUND - p.target.h * 0.55;
+            tx = p.target.x; ty = GROUND - (p.target.alt || 0) - p.target.h * 0.55;
           } else if (p.target) {
             p.dead = true;            // la cible est morte en route
             continue;
@@ -732,7 +779,7 @@ window.PA = window.PA || {};
       if (p.splash) {
         for (const f of foes) {
           if (!f.dead && Math.abs(f.x - x) <= p.splash + f.w / 2) {
-            this.damageUnit(f, p.dmg);
+            this.damageUnit(f, p.dmg, false, 'zone');
             // Tourelle incendiaire : la brûlure qui fera le plus de dégâts l'emporte.
             if (p.burn && !f.dead && (!f.burn || f.burn.dps * f.burn.t < p.burn.dps * p.burn.duration)) {
               f.burn = { dps: p.burn.dps, t: p.burn.duration };
@@ -747,7 +794,7 @@ window.PA = window.PA || {};
         this.spark(x, GROUND - 8, color, 8);
       } else if (p.target) {
         if (!p.target.dead) {
-          this.damageUnit(p.target, p.dmg);
+          this.damageUnit(p.target, p.dmg, false, 'tir');
           if (p.owner === 1) this.applyElement(p.target, p.dmg, true);
         }
         this.spark(p.x, p.y, this.hitColor(p.owner), 2);

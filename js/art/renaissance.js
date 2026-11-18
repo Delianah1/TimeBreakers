@@ -42,7 +42,7 @@
     muzzle(cc, len + 6.5, -0.9, k);
     if (k > 0.25) { cc.fillStyle = `rgba(235,235,235,${k * 0.6})`; cc.beginPath(); cc.arc(len + 9 + (1 - k) * 6, -4 - (1 - k) * 5, 3 + (1 - k) * 4, 0, TAU); cc.fill(); }
   }
-  K.longGun = longGun;
+  K.longGun = longGun; K.plumeHat = plumeHat; K.goatee = goatee; K.ruff = ruff; K.saber = saber;
   function morion(c, a, plume) {
     const { hx, hy } = a;
     if (plume) blob(c, plume, () => { c.moveTo(hx - 3, hy - 7); c.quadraticCurveTo(hx - 12, hy - 15, hx - 13, hy - 4); c.quadraticCurveTo(hx - 8, hy - 8, hx - 2, hy - 5.6); }, 1);

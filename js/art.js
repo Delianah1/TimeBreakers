@@ -218,7 +218,8 @@ window.PA = window.PA || {};
   } };
 
   // --- mammouth de guerre ------------------------------------------------------
-  Art.units.mammouth = { h: 58, draw(ctx, u, team, dark, atk) {
+  // o (champions, js/champions.js) : crown = le cavalier porte la couronne
+  Art.units.mammouth = { h: 58, draw(ctx, u, team, dark, atk, R, o) {
     const T = now();
     const mv = u.moving, ph = u.walk * 0.7;
     const st = mv ? Math.sin(ph) : 0;
@@ -296,6 +297,7 @@ window.PA = window.PA || {};
     blob(ctx, SKIN, () => ctx.arc(-5.6, ry - 16, 4.3, 0, TAU), 1.2);
     blob(ctx, '#4a2e1c', () => { ctx.moveTo(-10, ry - 14.5); ctx.arc(-5.6, ry - 16, 4.6, Math.PI * 0.9, Math.PI * 1.7); ctx.lineTo(-4.4, ry - 18.4); ctx.lineTo(-7.2, ry - 17); ctx.lineTo(-8.6, ry - 14); }, 1);
     ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(-3.4, ry - 16.4, 0.8, 0, TAU); ctx.fill();
+    if (o && o.crown) R.crown(ctx, -5.6, ry - 23.5);
     const px = atk * 7;
     limb(ctx, [-15 + px, ry - 9.5, 19 + px, ry - 3.5], 1.5, '#9a6a3a');
     ctx.save(); ctx.translate(19 + px, ry - 3.5); ctx.rotate(0.175);
@@ -870,7 +872,7 @@ window.PA = window.PA || {};
   Art.fx = {};      // effets des pouvoirs qui ne sont pas des « drops » : fx.airship(ctx, s), fx.sweep(ctx, s)
   Art.kit = { W, H, GROUND, TAU, INK, SKIN, SKIN_D, WOOD, WOOD_D, WOOD_L, ROCK, ROCK_D, ROCK_L, IVORY,
     rng, now, blob, limb, ell, stone, dk, poly, line, rect, disc, oval,
-    figure, face, hairShort, hairWild, helm, arm, fist, swing, thrust, aim,
+    figure, face, hairShort, hairWild, helm, arm, fist, swing, thrust, aim, caveman,
     muzzle, wheel, puffs, flame, halo,
     backdrop, sky, hills, starfield, cloud, clouds, flock, soil, ridge, range, pine };
   PA.Art = Art;

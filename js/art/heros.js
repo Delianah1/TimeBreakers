@@ -30,6 +30,7 @@
       disc(cc, 0, 0, 2.6 * big, glove, 1); line(cc, [0.6 * big, -1.6 * big, 0.6 * big, 1.6 * big], 'rgba(0,0,0,0.25)', 0.8);
     }, { sleeve, glove, x: 4, y: 3, reach: 11 });
   }
+  K.star = star; K.bolt = bolt; K.cape = cape; K.mask = mask; K.trunks = trunks; K.punch = punch;
   // Justicier : collant d'équipe, cape, loup, étoile sur la poitrine.
   A.units.justicier = { h: 46, draw(ctx, u, team, dark, atk, R) {
     figure(ctx, u, team, dark, atk, {

@@ -83,6 +83,7 @@
       R.crown(ctx, 0, -52.4 + jolt);
     } else oval(ctx, -1, -38 + jolt, 5.4, 1.8, C2, 1);
   }
+  K.tank = tank;
   A.units.char = { h: 44, draw(ctx, u, team, dark, atk, R) { tank(ctx, u, team, dark, atk, { hull: OLIVE }, R); } };
   A.units.commandant = { h: 44, draw(ctx, u, team, dark, atk, R) { tank(ctx, u, team, dark, atk, { hull: '#5a6058', crown: true }, R); } };
 

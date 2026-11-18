@@ -86,8 +86,11 @@ window.PA = window.PA || {};
 
       this.elemColor = b.element ? C.elements[b.element].color : null;
       if (PA.Pouvoirs) PA.Pouvoirs.sol(ctx, b);           // pouvoirs : ce qui est posé au sol (fosse, flaques, mines)
-      const all = b.pu.concat(b.eu).sort((u, v) => u.x - v.x);
+      if (PA.Champions) PA.Champions.sol(ctx, b);         // champions : flaques, œufs, galeries, aura
+      // Les volants passent devant les autres.
+      const all = b.pu.concat(b.eu).sort((u, v) => ((u.alt || 0) > 0) - ((v.alt || 0) > 0) || u.x - v.x);
       for (const u of all) this.unit(ctx, u);
+      if (PA.Champions) PA.Champions.dessiner(ctx, b);    // champions : souffle, bouclier, parachutes, rayons…
       for (const u of all) this.unitBar(ctx, u);
       for (const p of b.projectiles) this.projectile(ctx, p);
       for (const d of b.drops) if (d.delay <= 0 && d.x != null) this.drop(ctx, d);
@@ -141,7 +144,7 @@ window.PA = window.PA || {};
       } else {
         title = `NIVEAU ${b.levelNumber}`;
         sub = `${C.ages[b.enemyAge].name} · ${b.blockIndex + 1} / ${C.levels.perAge}`;
-        if (b.isBoss) { title += ' — BOSS'; color = '#ff8a6a'; sub += ' · un champion approche'; }
+        if (b.isBoss) { title += ' — BOSS'; color = '#ff8a6a'; sub += ` · ${b.champDef.name} approche`; }
         else if (b.blockIndex === 0 && b.enemyAge > 0) sub = `Nouvel âge ennemi : ${C.ages[b.enemyAge].name} !`;
         const gap = b.enemyAge - game.run.age;
         if (gap > 0) sub2 = `Outsider : +${Math.round(gap * C.prestige.outsiderPerAge * 100)} % de prestige si tu gagnes`;
@@ -863,10 +866,14 @@ window.PA = window.PA || {};
       const baseH = unitArt ? unitArt.h : { mammoth: 58, horse: 64, tank: 44, mech: 76, raptor: 40, trike: 56, trex: 80, warrig: 50, alien: 48, tripod: 84,
         ankylo: 40, siege: 46, drone: 50, chariot: 56, elephant: 70, automaton: 76, spider: 44 }[body] || 46;
       const s = u.h / baseH;
+      if (u.cache) return;                     // champion sous terre (js/champions.js) : on ne voit que la galerie
+      const alt = u.alt || 0;                  // unité en l'air : volant, saut, parachute
       ctx.save();
-      ctx.translate(u.x, GROUND);
       ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      ctx.beginPath(); ctx.ellipse(0, 1, u.w * 0.55, 4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(u.x, GROUND + 1, u.w * 0.55 * (alt ? 0.7 : 1), alt ? 3 : 4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.translate(u.x, GROUND - alt);
+      if (u.renverse > 0) ctx.rotate(-u.side * 0.5 * Math.min(1, u.renverse));   // renversé par une charge
+      if (u.ecrase > 0) ctx.scale(1, 1 - 0.4 * u.ecrase);                       // écrasé par le Monstre-camion
       // Élément de la run : un anneau coloré aux pieds de tes unités.
       if (u.side === 1 && this.elemColor) {
         ctx.strokeStyle = this.elemColor; ctx.lineWidth = 2; ctx.globalAlpha = 0.75;
@@ -1664,17 +1671,49 @@ window.PA = window.PA || {};
       if (atk > 0.3) { ctx.fillStyle = `rgba(235,235,235,${atk * 0.6})`; ctx.beginPath(); ctx.arc(8, -50, 4 + atk * 4, 0, Math.PI * 2); ctx.fill(); }
     },
 
+    // Couronne des chefs et des champions : or en deux tons, contour brun fin, perles aux pointes, bandeau à pierres.
+    // Repère : centrée en x, posée sur y + 3 (bas du bandeau), environ 15 de large et 11 de haut.
     crown(ctx, x, y) {
-      ctx.fillStyle = '#f2c230';
-      ctx.beginPath();
-      ctx.moveTo(x - 6, y + 3); ctx.lineTo(x - 6, y - 3); ctx.lineTo(x - 3, y); ctx.lineTo(x, y - 5);
-      ctx.lineTo(x + 3, y); ctx.lineTo(x + 6, y - 3); ctx.lineTo(x + 6, y + 3); ctx.fill();
+      const INK = '#2b1d14', OR = '#f2c230', OR_D = '#c98f1c', OR_L = '#ffe58a';
+      ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.translate(x, y + 3); ctx.scale(1.15, 1.15); ctx.translate(-x, -y - 3);   // un peu plus grande, posée au même endroit
+      const pointes = () => {
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y + 0.6); ctx.lineTo(x - 6.6, y - 3.6); ctx.quadraticCurveTo(x - 4.6, y - 1.4, x - 2.6, y - 1.2);
+        ctx.lineTo(x, y - 5); ctx.lineTo(x + 2.6, y - 1.2); ctx.quadraticCurveTo(x + 4.6, y - 1.4, x + 6.6, y - 3.6); ctx.lineTo(x + 6, y + 0.6);
+        ctx.closePath();
+      };
+      pointes(); ctx.fillStyle = OR; ctx.fill();
+      ctx.save(); pointes(); ctx.clip();                         // ombre sur le côté droit de chaque pointe
+      ctx.fillStyle = OR_D;
+      ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x + 2.6, y - 1.2); ctx.lineTo(x + 0.6, y + 1); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x + 6.6, y - 3.6); ctx.lineTo(x + 6, y + 1); ctx.lineTo(x + 4.6, y + 1); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x - 6.6, y - 3.6); ctx.lineTo(x - 5.4, y + 1); ctx.lineTo(x - 4.6, y - 1.3); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      pointes(); ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.stroke();
+      // perles au bout des pointes
+      for (const [px, py, r] of [[x - 6.6, y - 3.9, 1.1], [x, y - 5.4, 1.25], [x + 6.6, y - 3.9, 1.1]]) {
+        ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fillStyle = OR_L; ctx.fill(); ctx.lineWidth = 0.8; ctx.stroke();
+      }
+      // bandeau
+      ctx.beginPath(); ctx.moveTo(x - 6.4, y + 0.2); ctx.lineTo(x + 6.4, y + 0.2); ctx.lineTo(x + 6.2, y + 3); ctx.lineTo(x - 6.2, y + 3); ctx.closePath();
+      ctx.fillStyle = OR_D; ctx.fill(); ctx.lineWidth = 1; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - 5.4, y + 1.1); ctx.lineTo(x + 5.4, y + 1.1); ctx.strokeStyle = 'rgba(255,229,138,0.8)'; ctx.lineWidth = 0.7; ctx.stroke();
+      // pierres : rubis au centre, émeraudes sur les côtés
+      ctx.strokeStyle = INK; ctx.lineWidth = 0.6;
+      for (const [px, r, col] of [[x, 1.25, '#d8362f']]) {
+        ctx.beginPath(); ctx.arc(px, y + 1.7, r, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(x - 0.4, y + 1.3, 0.4, 0, Math.PI * 2); ctx.fill();
+      // reflet sur la pointe du milieu
+      ctx.beginPath(); ctx.moveTo(x - 0.6, y - 3.4); ctx.lineTo(x - 1.6, y - 1.2); ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 0.7; ctx.stroke();
+      ctx.restore();
     },
 
     unitBar(ctx, u) {
-      if (u.hp >= u.maxHp && !u.isChampion) return;
+      if (u.hp >= u.maxHp && !u.isChampion || u.cache) return;
       const bw = Math.max(24, u.w * 0.8);
-      const x = u.x - bw / 2, y = GROUND - u.h - 12;
+      const x = u.x - bw / 2, y = GROUND - (u.alt || 0) - u.h - 12;
       const k = Math.max(0, u.hp / u.maxHp);
       ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x, y, bw, 4);
       ctx.fillStyle = u.side === 1 ? '#6fd06b' : '#f06a55';

@@ -70,7 +70,7 @@
     if (o.crown) R.crown(ctx, A2.hx, A2.hy - 8.5);
     if (o.arm) o.arm(ctx, A2);
   }
-  K.mounted = mounted;
+  K.mounted = mounted; K.ecu = ecu;
 
   function greatHelm(c, a, team) {
     const { hx, hy } = a;

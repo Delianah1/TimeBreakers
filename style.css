@@ -178,6 +178,10 @@ details.dev summary { cursor: pointer; color: var(--muted); }
 /* choix de la difficulté (deux campagnes séparées) : au centre de la barre du haut, visible dans tous les onglets */
 .seg { display: flex; border: calc(var(--u) * 0.3) solid var(--ink); border-radius: 99px; overflow: hidden; background: var(--navy-d); }
 #overlay-card .camp-top .seg button { width: auto; min-height: 0; border: 0; border-radius: 0; box-shadow: none; background: none; color: #9fc4ff; text-shadow: none; font-size: calc(var(--u) * 1.7); padding: calc(var(--u) * 0.55) calc(var(--u) * 1.8); transform: none; }
+/* sous-catégories d'un onglet (Améliorations : Bonus / Vitesse) */
+.sous-onglets { width: max-content; margin: 0 auto calc(var(--u) * 1.2); }
+#overlay-card .sous-onglets button { width: auto; min-height: 0; border: 0; border-radius: 0; box-shadow: none; background: none; color: #9fc4ff; text-shadow: none; font-size: calc(var(--u) * 1.9); padding: calc(var(--u) * 0.6) calc(var(--u) * 2.6); transform: none; }
+#overlay-card .sous-onglets button.on { background: linear-gradient(#8cf06a, #3fae2f); color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,0.35); }
 #overlay-card .camp-top .seg button.on { background: linear-gradient(#8cf06a, #3fae2f); color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,0.35); }
 #overlay-card .camp-top .seg button.d-difficile.on { background: linear-gradient(#ff8a7a, var(--red)); }
 /* écran très bas (téléphone dans un navigateur avec ses barres, vu sur une capture à 270 px de haut) :
@@ -230,6 +234,26 @@ details.dev summary { cursor: pointer; color: var(--muted); }
 .upgrade .desc { color: #c4d6f6; font-size: calc(var(--u) * 1.3); }
 .upgrade > button, .upgrade > span { white-space: nowrap; flex-shrink: 0; }
 .elite-card { border-color: var(--yellow-d); } .elite-card .name { color: var(--yellow); }
+/* tutoriel et visite guidée (js/tuto.js) : un cadre jaune autour de ce qu'on explique, le reste assombri, une bulle à côté */
+.hero .decouvrir { display: flex; gap: clamp(8px, 1.4vw, 18px); justify-content: center; flex-wrap: wrap; }
+#overlay-card .hero .decouvrir button { font-size: clamp(13px, min(2.2vw, 4.4vh), 22px); padding: 0.35em 1.3em; }
+#tuto { position: fixed; inset: 0; z-index: 40; pointer-events: none; font-family: var(--f-body, inherit); }
+#tuto[hidden] { display: none; }
+#tuto .tuto-bloc { position: absolute; inset: 0; pointer-events: auto; }
+#tuto.centre:not(.action) .tuto-bloc { background: rgba(6,13,34,0.7); }
+#tuto .tuto-cadre { position: absolute; border: 3px solid #ffd23f; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(6,13,34,0.7); pointer-events: none; animation: tuto-pouls 1s infinite alternate; }
+#tuto.action .tuto-cadre { box-shadow: 0 0 0 9999px rgba(6,13,34,0.35), 0 0 18px 4px rgba(255,210,63,0.8); }
+@keyframes tuto-pouls { from { border-color: #ffd23f; } to { border-color: #fff; } }
+#tuto .tuto-bulle { position: absolute; pointer-events: auto; width: min(430px, calc(100vw - 16px)); background: #12306e; border: 3px solid #0a1838; border-radius: 14px; padding: 12px 14px 10px; color: #e8efff; box-shadow: 0 6px 0 rgba(6,13,34,0.6); font-size: clamp(13px, 1.9vh + 0.5vw, 17px); line-height: 1.35; }
+#tuto .tuto-bulle .t { display: block; font-family: var(--f-title); font-weight: 400; font-size: 1.3em; color: #ffd23f; margin-bottom: 4px; }
+#tuto .tuto-bulle p { margin: 0 0 10px; }
+#tuto .tuto-bas { display: flex; align-items: center; gap: 8px; }
+#tuto .tuto-bas .n { color: #a9bbe6; font-size: 0.85em; margin-right: auto; }
+#tuto .tuto-bas .b { display: flex; gap: 8px; }
+#tuto button { font: inherit; font-family: var(--f-title); cursor: pointer; border: 3px solid #0a1838; border-radius: 10px; padding: 5px 14px; color: #0a1838; background: #cfd8ea; }
+#tuto button.ok { background: linear-gradient(#8cf06a, #3fae2f); }
+#tuto button.discret { background: transparent; border-color: transparent; color: #a9bbe6; text-decoration: underline; padding: 5px 6px; }
+#tuto.action .tuto-bas::after { content: '👆 à toi'; color: #ffd23f; font-family: var(--f-title); }
 /* pouvoirs ultimes : un titre par âge, quatre cartes, celle qui est équipée est cerclée de jaune */
 .pouvoirs h3.pouvoir-age { grid-column: 1 / -1; margin: 0.8cqw 0 0; font-size: 1.5cqw; color: var(--yellow); }
 .pouvoirs h3.pouvoir-age.verrou { opacity: 0.5; }

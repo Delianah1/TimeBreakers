@@ -23,6 +23,12 @@
     leg(-1, C3);
     const tw = Math.sin(T * 3 + u.x * 0.03) * 2.2 + sw * 1.5;
     blob(ctx, C1, () => { ctx.moveTo(-6, -23 - 5 * f + b); ctx.quadraticCurveTo(-18, -27 + b + tw * 0.4, -30, -24 + b + tw); ctx.quadraticCurveTo(-18, -21 + b + tw * 0.4, -5, -23 + 6 * f + b); });
+    if (o.sail) {                                                     // voile dorsale (Spinosaure, js/champions.js)
+      const top = -23 - 6.5 * f + b;
+      blob(ctx, o.sail, () => { ctx.moveTo(-11, top + 2); ctx.quadraticCurveTo(-9, top - 20, -1, top - 22); ctx.quadraticCurveTo(7, top - 20, 9, top + 1); }, 1.3);
+      for (const x of [-7, -3.5, 0, 3.5, 6.5]) line(ctx, [x, top + 1, x * 0.75 - 1, top - 20 + Math.abs(x + 1) * 1.5], dk(o.sail, 0.7), 1.1);
+      ctx.fillStyle = dk(o.sail, 1.2); ctx.beginPath(); ctx.moveTo(-9, top - 3); ctx.quadraticCurveTo(-7, top - 17, -1, top - 19); ctx.quadraticCurveTo(-5, top - 14, -6, top - 2); ctx.closePath(); ctx.fill();
+    }
     blob(ctx, C1, () => {
       ctx.moveTo(-8, -23 - 4.5 * f + b); ctx.quadraticCurveTo(0, -23 - 8.5 * f + b, 8, -23 - 6.5 * f + b); ctx.quadraticCurveTo(12, -25 + b, 9, -23 + 4 * f + b);
       ctx.quadraticCurveTo(0, -23 + 8 * f + b, -8, -23 + 5 * f + b); ctx.quadraticCurveTo(-11, -22 + b, -8, -23 - 4.5 * f + b);
@@ -57,6 +63,7 @@
     ctx.restore();
     limb(ctx, [7, -22 + b, 11, -19 + b, 13.5 + atk * 2, -20.5 + b], o.rex ? 1.3 : 1.6, C1);
   }
+  K.theropod = theropod;
   A.units.raptor = { h: 40, draw(ctx, u, team, dark, atk, R) { theropod(ctx, u, team, dark, atk, { body: '#7f9a48', belly: '#d2d394' }, R); } };
   A.units.cracheur = { h: 40, draw(ctx, u, team, dark, atk, R) { theropod(ctx, u, team, dark, atk, { body: '#4f9486', belly: '#bfe0c8', frill: true, eye: '#c8ff6a' }, R); } };
   A.units['roi-tyran'] = { h: 46, draw(ctx, u, team, dark, atk, R) { theropod(ctx, u, team, dark, atk, { body: '#6f7a46', belly: '#cfc890', rex: true, crown: true, eye: '#ff9a3c' }, R); } };
@@ -67,6 +74,7 @@
     ctx.fillStyle = IVORY; for (const o of [-1.8, 0.8, 3.4]) { ctx.beginPath(); ctx.arc(x + dx + o, -0.9 - lift, 1, Math.PI, 0); ctx.fill(); }
   }
 
+  K.stump = stump;
   A.units.tricera = { h: 56, draw(ctx, u, team, dark, atk) {
     const T = now(), mv = u.moving, ph = u.walk * 0.7, st = mv ? Math.sin(ph) : 0;
     const b = mv ? -Math.abs(Math.cos(ph)) * 1.1 : -Math.sin(T * 1.7 + u.x * 0.04) * 0.5;
@@ -256,10 +264,50 @@
   };
 
   /* ------------------------------------------------------------------ décor */
-  function cycad(g, x, y, s, col) {
-    g.strokeStyle = col; g.lineWidth = 5 * s; g.beginPath(); g.moveTo(x, y + 4); g.quadraticCurveTo(x + 3 * s, y - 20 * s, x - 2 * s, y - 40 * s); g.stroke();
-    g.lineWidth = 2.6 * s;
-    for (let i = 0; i < 9; i++) { const a = -Math.PI * 0.97 + i * Math.PI * 0.94 / 8, L = (26 + (i % 2) * 6) * s; g.beginPath(); g.moveTo(x - 2 * s, y - 40 * s); g.quadraticCurveTo(x - 2 * s + Math.cos(a) * L * 0.7, y - 40 * s + Math.sin(a) * L - 6 * s, x - 2 * s + Math.cos(a) * L, y - 40 * s + Math.sin(a) * L * 0.5 + 8 * s); g.stroke(); }
+  // Silhouettes à deux tons, sans contour. Une forme effilée le long d'une courbe (cou, queue, tronc).
+  function effile(g, p0, p1, p2, r0, r1, col, n = 34) {
+    g.fillStyle = col; g.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const k = i / n, x = (1 - k) * (1 - k) * p0[0] + 2 * (1 - k) * k * p1[0] + k * k * p2[0], y = (1 - k) * (1 - k) * p0[1] + 2 * (1 - k) * k * p1[1] + k * k * p2[1], r = r0 + (r1 - r0) * k;
+      g.moveTo(x + r, y); g.arc(x, y, r, 0, TAU);
+    }
+    g.fill();
+  }
+  const plein = (g, x, y, rx, ry, col, rot = 0) => { g.fillStyle = col; g.beginPath(); g.ellipse(x, y, rx, ry, rot, 0, TAU); g.fill(); };
+  // Une palme : une feuille pleine, de sa base vers une pointe qui retombe.
+  function palme(g, x, y, a, L, w, col) {
+    const ex = x + Math.cos(a) * L, ey = y + Math.sin(a) * L * 0.5 + L * 0.34, cx = x + Math.cos(a) * L * 0.55, cy = y + Math.sin(a) * L * 0.95 - L * 0.12;
+    g.fillStyle = col; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(cx, cy - w, ex, ey); g.quadraticCurveTo(cx, cy + w, x, y); g.fill();
+  }
+  // Fougère arborescente : tronc fin et courbe, grande couronne de palmes pleines qui retombent.
+  function fougere(g, x, y, s, col, sombre) {
+    const hx = x - 5 * s, hy = y - 62 * s;
+    effile(g, [x, y + 4], [x + 9 * s, y - 30 * s], [hx, hy], 4.6 * s, 2.6 * s, sombre);
+    for (let i = 0; i < 11; i++) {
+      const a = -Math.PI * 1.04 + i * Math.PI * 1.08 / 10 + Math.sin(i * 1.7 + x) * 0.035, L = (34 + (i % 2) * 9 - Math.abs(i - 5) * 1.2) * s;
+      palme(g, hx, hy, a, L, 6.5 * s, i % 2 ? sombre : col);
+    }
+    plein(g, hx, hy, 4.2 * s, 3.4 * s, sombre);
+  }
+  // Une jambe de sauropode : cuisse large qui part de l'intérieur du corps (y = haut), genou plus fin, pied posé à y = 0.
+  function jambe(g, x, haut, w, col) {
+    const k = haut * 0.3;
+    g.fillStyle = col; g.beginPath(); g.moveTo(x - w * 0.6, haut);
+    g.quadraticCurveTo(x - w * 0.56, haut * 0.55, x - w * 0.36, k); g.lineTo(x - w * 0.44, -2.5); g.quadraticCurveTo(x - w * 0.46, 0, x - w * 0.3, 0);
+    g.lineTo(x + w * 0.42, 0); g.quadraticCurveTo(x + w * 0.56, 0, x + w * 0.5, -3); g.lineTo(x + w * 0.36, k);
+    g.quadraticCurveTo(x + w * 0.56, haut * 0.55, x + w * 0.6, haut); g.closePath(); g.fill();
+  }
+  // Diplodocus : cou tendu à l'horizontale, longue queue en fouet. k = taille (le petit qui suit est à 0.46).
+  function diplodocus(g, x, y, k, col, sombre, bal) {
+    g.save(); g.translate(x, y); g.scale(k, k);
+    jambe(g, -27, -42, 13, sombre); jambe(g, 13, -42, 13, sombre);
+    effile(g, [-34, -40], [-90, -46 + bal * 0.5], [-150, -18 + bal], 11, 0.8, col, 48);
+    plein(g, 0, -40, 42, 19, col);
+    g.save(); g.beginPath(); g.ellipse(0, -40, 42, 19, 0, 0, TAU); g.clip(); g.fillStyle = sombre; g.fillRect(-50, -33, 100, 30); g.restore();
+    jambe(g, -13, -44, 15, col); jambe(g, 25, -44, 15, col);
+    effile(g, [34, -46], [78, -70 - bal * 0.4], [124, -66 - bal], 11, 4, col, 44);
+    plein(g, 131, -65 - bal, 10, 5, col, 0.12);
+    g.restore();
   }
   function volcanoFar(g, x, base, w, hh, col, lit) {
     poly(g, [x - w, base, x - w * 0.16, base - hh, x + w * 0.16, base - hh, x + w, base], col);
@@ -279,20 +327,16 @@
     const h1 = x => 500 - Math.sin(x * 0.0046 + 2.2) * 26 - Math.sin(x * 0.012 + 0.4) * 9;
     const h2 = x => 560 - Math.sin(x * 0.0062 + 0.9) * 18 - Math.sin(x * 0.019 + 3) * 6;
     hills(f, h1, 0, '#6f9a66');
-    // sauropode au loin
-    f.fillStyle = '#5c8a5e'; const sx = 700, sy = h1(700) + 4;
-    f.beginPath(); f.ellipse(sx, sy - 34, 44, 20, 0, 0, TAU); f.fill();
-    for (const dx of [-26, -12, 14, 28]) f.fillRect(sx + dx - 5, sy - 28, 10, 30);
-    f.strokeStyle = '#5c8a5e'; f.lineWidth = 12; f.beginPath(); f.moveTo(sx + 34, sy - 42); f.quadraticCurveTo(sx + 62, sy - 78, sx + 58, sy - 118); f.stroke();
-    f.lineWidth = 9; f.beginPath(); f.moveTo(sx - 38, sy - 36); f.quadraticCurveTo(sx - 76, sy - 34, sx - 96, sy - 12); f.stroke();
-    f.beginPath(); f.ellipse(sx + 63, sy - 122, 11, 6, -0.3, 0, TAU); f.fill();
-    for (const [x, s] of [[70, 1.1], [150, 0.8], [330, 1], [470, 0.75], [1010, 1.05], [1090, 0.8], [1210, 1.15]]) cycad(f, x, h1(x), s, '#4f7f52');
+    // diplodocus au loin, suivi de son petit
+    const sy = h1(700) + 4;
+    diplodocus(f, 622, sy, 0.46, '#5c8a5e', '#507c54', -2); diplodocus(f, 718, sy, 1, '#5c8a5e', '#507c54', 1);
+    for (const [x, s] of [[70, 1.1], [150, 0.8], [330, 1], [470, 0.75], [1010, 1.05], [1090, 0.8], [1210, 1.15]]) fougere(f, x, h1(x), s, '#4f7f52', '#467349');
     let gr = f.createLinearGradient(0, 430, 0, 560); gr.addColorStop(0, 'rgba(253,226,180,0)'); gr.addColorStop(1, 'rgba(253,226,180,0.45)');
     f.fillStyle = gr; f.fillRect(-40, 430, W + 80, 140);
     hills(f, h2, 0, '#3f7a44');
     gr = f.createLinearGradient(0, 540, 0, GROUND); gr.addColorStop(0, '#356b3c'); gr.addColorStop(1, '#2c5a36');
     hills(f, h2, 5, gr);
-    for (const [x, s] of [[30, 1.5], [230, 1.2], [560, 1.6], [880, 1.3], [1150, 1.5], [1255, 1.1]]) cycad(f, x, h2(x) + 8, s, '#27502f');
+    for (const [x, s] of [[30, 1.5], [230, 1.2], [560, 1.6], [880, 1.3], [1150, 1.5], [1255, 1.1]]) fougere(f, x, h2(x) + 8, s, '#27502f', '#204528');
     f.strokeStyle = '#2f6238'; f.lineWidth = 3;
     for (let i = 0; i < 26; i++) { const x = r() * W, y = h2(x) + 10 + r() * 20; for (const k of [-1, -0.4, 0.4, 1]) { f.beginPath(); f.moveTo(x, y); f.quadraticCurveTo(x + k * 8, y - 18, x + k * 20, y - 8); f.stroke(); } }
     soil(f, r, { top: '#5d4a2e', bottom: '#3a2c1a', pebbles: ['#6f6356', '#857868'], nPebbles: 26, tufts: ['#4f8a3a', '#6aa04a'], band: '#4f8a3a', bandLight: '#74b055', blade: '#3f7a30' });

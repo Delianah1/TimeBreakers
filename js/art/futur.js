@@ -84,6 +84,7 @@
     if (o.trim) { line(ctx, [-18, -44 + b, 14, -42 + b], o.trim, 1.6); line(ctx, [-18.6, -58 + b, 4, -59.4 + b], o.trim, 1.2); }
     if (o.crown) R.crown(ctx, 0, -79 + b);
   }
+  K.mech = mech; K.visorHelm = visorHelm; K.plating = plating;
   A.units.marcheur = { h: 78, draw(ctx, u, team, dark, atk, R) { mech(ctx, u, team, dark, atk, { hull: WHITE }, R); } };
   A.units.titan = { h: 78, draw(ctx, u, team, dark, atk, R) { mech(ctx, u, team, dark, atk, { hull: '#566078', trim: '#f2c230', crown: true }, R); } };
 

@@ -32,7 +32,7 @@ window.PA = window.PA || {};
       PA.UI.init(this);
       const demo = new URLSearchParams(location.search).get('demo');
       if (demo && PA.DEV) this.startDemo(demo);   // la vitrine (or illimité) n'existe pas dans la version publique
-      else this.showCamp();
+      else { this.showCamp(); if (PA.Tuto) PA.Tuto.premierLancement(); }   // premier lancement : visite guidée des menus
       requestAnimationFrame(t => { this.last = t; this.frame(t); });
     },
 
@@ -57,7 +57,11 @@ window.PA = window.PA || {};
         age: idx, xp: 0, gold: 0, base: { hp: 0, maxHp: 0 }, relics: [],
         turrets: [0, 1, 2].map(i => ({ age: idx, idx: i, cd: 0.5 + i * 0.4 })),
         level: idx * C.levels.perAge + 3, levelsDone: 0, ppLevels: 0, ppAssault: 0, ppLost: 0, assaultWave: 0,
+        champions: PA.Champions ? PA.Champions.tirer() : null,
       };
+      // index.html?demo=pierre&champion=2 : toujours le même champion (0 à 2) dans chaque âge.
+      const ch = new URLSearchParams(location.search).get('champion');
+      if (ch != null && this.run.champions) this.run.champions = this.run.champions.map(() => +ch);
       this.refreshBaseMax();
       this.run.base.hp = this.run.base.maxHp;
       this.demo = { idx, t: 0, next: 0.6, k: 0, champ: false, special: 12 };
@@ -77,7 +81,7 @@ window.PA = window.PA || {};
         const def = age.units[[0, 1, 0, 3, 1, 2, 0, 1][d.k % 8]];
         if (b.pu.length < 9 && b.canSpawn(1, def.w)) { b.spawnPlayer(def, d.idx); d.k++; }
       }
-      if (!d.champ && d.t > 8) { d.champ = true; b.spawnEnemy(age.champion, true); }
+      if (!d.champ && d.t > 8) { d.champ = true; b.spawnEnemy(b.champDef, true); b.sortUnits(); }
       if (d.t > d.special) { d.special = d.t + 16; b.specialCd = 0; b.useSpecial(); }
       if (b.time > 300) {                       // on repart avant l'arrivée des renforts ennemis
         d.t = 0; d.next = 0.6; d.champ = false; d.special = 12;
@@ -156,6 +160,7 @@ window.PA = window.PA || {};
         ppAssault: 0,      // points gagnés pendant l'assaut final
         ppLost: 0,
         assaultWave: 0,    // vagues franchies
+        champions: PA.Champions ? PA.Champions.tirer() : null,   // le champion de chaque âge, tiré au sort pour cette run
       };
       this.run.gold = C.economy.startGold + this.mods().startGold;
       // Version perso : assez d'XP dès le départ pour évoluer jusqu'au dernier âge jouable (le bouton Évoluer reste libre).
@@ -194,6 +199,7 @@ window.PA = window.PA || {};
 
     handleEnd(b, result) {
       if (b !== this.battle) return;
+      if (PA.Tuto && PA.Tuto.actif) return PA.Tuto.finCombat(result);   // tutoriel : ni prestige, ni récompense
       if (b.mode === 'level') {
         if (result === 'victory') this.levelVictory(b);
         else this.levelDefeat(b, 'defeat-level');
@@ -340,6 +346,7 @@ window.PA = window.PA || {};
       const b = this.battle;
       if (!b) return;
       b.over = true;
+      if (PA.Tuto && PA.Tuto.actif) return PA.Tuto.quitter();
       if (b.mode === 'level') this.levelDefeat(b, 'abandon');
       else this.assaultDefeat(b, 'abandon');
     },

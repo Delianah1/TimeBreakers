@@ -91,6 +91,7 @@
     halo(ctx, 17, -61 + b, 7, '141,255,122', 0.6); disc(ctx, 17, -61 + b, 3.6, GLOW, 1); disc(ctx, 18, -61.6 + b, 1.3, '#111018');
     if (o.crown) R.crown(ctx, 0, -84 + b);
   }
+  K.alienHead = alienHead;
   A.units.tripode = { h: 84, draw(ctx, u, team, dark, atk, R) { tripod(ctx, u, team, dark, atk, {}, R); } };
   A.units['tripode-imperial'] = { h: 84, draw(ctx, u, team, dark, atk, R) { tripod(ctx, u, team, dark, atk, { crown: true }, R); } };
 

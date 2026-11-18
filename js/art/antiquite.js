@@ -124,7 +124,8 @@
   A.units.imperator = { h: 56, draw(ctx, u, team, dark, atk, R) { chariot(ctx, u, team, dark, atk, { coat: '#e9e2d4', gold: true, crown: true }, R); } };
 
   // Éléphant de guerre : frontal de bronze, tour de bois sur le dos, cornac à la lance.
-  function elephant(ctx, u, team, dark, atk) {
+  // o (champions, js/champions.js) : crown = le cornac porte la couronne au lieu du casque
+  function elephant(ctx, u, team, dark, atk, R, o) {
     const T = now(), mv = u.moving, ph = u.walk * 0.6, st = mv ? Math.sin(ph) : 0;
     const b = mv ? -Math.abs(Math.cos(ph)) * 1.2 : -Math.sin(T * 1.6 + u.x * 0.04) * 0.5;
     const C1 = '#8e9098', C2 = '#6f7178', C3 = '#a9abb3';
@@ -153,7 +154,8 @@
     rect(ctx, -17, ty - 8, 24, 3, team);
     line(ctx, [-11, ty - 12.6, -11, ty - 0.4], WOOD_D, 1); line(ctx, [-3, ty - 12.6, -3, ty - 0.4], WOOD_D, 1);
     disc(ctx, -5, ty - 20.5, 4, SKIN, 1.2);
-    const a2 = { hx: -5, hy: ty - 20.5 }; helm(ctx, a2, BRONZE, { neck: 1.6 });
+    const a2 = { hx: -5, hy: ty - 20.5 };
+    if (o && o.crown) { disc(ctx, -3.2, ty - 21, 0.8, INK); R.crown(ctx, -5, ty - 27.5); } else helm(ctx, a2, BRONZE, { neck: 1.6 });
     const px = atk * 6;
     limb(ctx, [-14 + px, ty - 22, 16 + px, ty - 14], 1.4, '#9a6a3a');
     blob(ctx, '#d6d9de', () => { ctx.moveTo(15.4 + px, ty - 16.6); ctx.lineTo(22.5 + px, ty - 12.4); ctx.lineTo(15.4 + px, ty - 11.6); }, 0.9);
@@ -172,6 +174,7 @@
     disc(ctx, 42 + atk * 2, -27 + b - atk * 2, 1.9, BRONZE, 0.9);
   }
   A.units.elephant = { h: 70, top: 76, draw: elephant };
+  K.elephant = elephant; K.crest = crest; K.spear = spear;
 
   // Charge des éléphants (pouvoir) : halo doré et poussière.
   A.fx.sweep = function (ctx, s, team, dark) {

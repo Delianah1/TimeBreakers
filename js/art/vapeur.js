@@ -77,6 +77,7 @@
     if (atk > 0.3) steam(ctx, 14, -52 + b, { n: 2, speed: 2, rise: 10, r0: 2, r1: 5 });
     if (o.crown) R.crown(ctx, 2, -85 + b);
   }
+  K.goggles = goggles;
   A.units.automate = { h: 79, draw(ctx, u, team, dark, atk, R) { automaton(ctx, u, team, dark, atk, { metal: BRASS }, R); } };
   A.units['colosse-fonte'] = { h: 79, draw(ctx, u, team, dark, atk, R) { automaton(ctx, u, team, dark, atk, { metal: '#6a6a70', crown: true }, R); } };
 

@@ -410,7 +410,8 @@ window.PA = window.PA || {};
       const loss = PA.Meta.lossRate(meta);
       const D = PA.diff(meta), DH = C.difficulties.difficile;
       // Écran de départ à onglets : Bataille (accueil), Améliorations, Âges, Élites, Vitesse, et l'aide (bouton « ? »).
-      const tab = this.campTab || 'play';
+      if (this.campTab === 'speed') { this.campTab = 'ups'; this.campSous = 'speed'; }   // l'ancien onglet Vitesse
+      const tab = this.campTab || 'play', sous = this.campSous === 'speed' ? 'speed' : 'bonus';
       const nextCost = PA.Meta.nextAgeCost(meta);
       const canAge = nextCost != null && unlocked < C.ages.length && meta.balance >= nextCost;
       const bodies = {
@@ -418,15 +419,19 @@ window.PA = window.PA || {};
             ${canAge ? `<div class="badge">NOUVEL ÂGE<br>disponible !</div>` : ''}
             <h1>TIME <br><em>BREAKERS</em></h1>
             <button class="play" data-action="start">JOUER</button>
+            ${PA.Tuto ? '<div class="decouvrir"><button class="tuto" data-action="tuto">Tutoriel</button><button class="visite" data-action="guide">Visite des menus</button></div>' : ''}
             <div class="stats">${PA.Meta.playableAgeCount(meta)} âges sur ${C.ages.length} · Meilleur niveau ${meta.bestLevel} · Meilleure vague ${meta.bestWave} · ${meta.runs} run${meta.runs > 1 ? 's' : ''}<small>${D.name} : ${D.desc}</small></div>
           </div>`,
-        ups: `<p class="camp-hint">Bonus permanents, valables à chaque run. Débloquer des âges relève le plafond.</p><div class="upgrades">${ups}</div>`,
+        // Améliorations : deux sous-catégories, « Bonus » et « Vitesse » (l'ancien onglet Vitesse).
+        ups: `<div class="seg sous-onglets"><button data-action="sous" data-arg="bonus" class="${sous === 'bonus' ? 'on' : ''}">Bonus</button><button data-action="sous" data-arg="speed" class="${sous === 'speed' ? 'on' : ''}">Vitesse</button></div>` +
+          (sous === 'speed'
+            ? `<p class="camp-hint">Accélère le combat. Ne change ni l’or, ni l’XP, ni le prestige.</p><div class="upgrades">${speeds}</div>`
+            : `<p class="camp-hint">Bonus permanents, valables à chaque run. Débloquer des âges relève le plafond.</p><div class="upgrades">${ups}</div>`),
         ages: `<p class="camp-hint">Chaque âge débloqué ajoute 5 niveaux à la run. Ils s’achètent dans l’ordre.</p><div class="ages">${ages}</div>`,
         elites: `<p class="camp-hint">La 4e unité de chaque âge : dégâts de zone, réservée à ton armée.</p><div class="upgrades">${elites}</div>`,
         pouvoirs: `<p class="camp-hint">Un pouvoir équipé par âge. Celui de contrôle est offert ; les trois autres s’achètent une fois l’âge débloqué.</p><div class="upgrades pouvoirs">${pouvoirs}</div>`,
-        speed: `<p class="camp-hint">Accélère le combat. Ne change ni l’or, ni l’XP, ni le prestige.</p><div class="upgrades">${speeds}</div>`,
       };
-      const tabs = [['ups', '⚒', 'Améliorations'], ['ages', '⏳', 'Âges'], ['play', '⚔', 'Bataille'], ['elites', '★', 'Élites'], ['pouvoirs', '✦', 'Pouvoirs'], ['speed', '»', 'Vitesse']]
+      const tabs = [['ups', '⚒', 'Améliorations'], ['ages', '⏳', 'Âges'], ['play', '⚔', 'Bataille'], ['elites', '★', 'Élites'], ['pouvoirs', '✦', 'Pouvoirs']]
         .map(([id, ic, nom]) => `<button data-action="tab" data-arg="${id}" class="${tab === id ? 'on' : ''}"><i>${ic}</i>${nom}</button>`).join('');
       const aide = `
         <h3>Son</h3>
@@ -486,7 +491,11 @@ window.PA = window.PA || {};
         <nav class="tabs">${tabs}</nav>
       `, {
         tab: t => { this.campTab = t; this.showCamp(); },
-        start: () => { this.campTab = 'play'; game.newRun(); },
+        sous: s => { this.campSous = s; this.showCamp(); },
+        // JOUER : qui n'a jamais fait le tutoriel se voit poser la question une fois (js/tuto.js).
+        start: () => { if (PA.Tuto && PA.Tuto.doitConfirmer()) return PA.Tuto.confirmer(); this.campTab = 'play'; game.newRun(); },
+        tuto: () => PA.Tuto.lancer(),
+        guide: () => { this.campTab = 'play'; this.showCamp(); PA.Tuto.guide(); },
         diff: d => game.setDifficulty(d),
         musique: (arg, el) => { const on = PA.Music.basculer(); el.classList.toggle('off', !on); },
         styleVisuel: (s, el) => { PA.Fx.choisir(s); el.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); },
