@@ -32,6 +32,12 @@ window.PA = window.PA || {};
       { id: 'mammouth', name: 'Mammouth enragé', type: 'sweep', count: 1, k: 4, speed: 480, knock: 70, look: 'mammouth', desc: 'Il charge d’un bout à l’autre et repousse les ennemis.' },
       { id: 'feu-sacre', name: 'Feu sacré', type: 'haste', t: 8, desc: 'Tes unités frappent deux fois plus vite pendant 8 secondes.' },
     ],
+    // Âge caché (js/magma.js) : il prend la place de la Pierre dans les runs où on plonge dans le volcan.
+    magma: [
+      { id: 'souffle-volcan', name: 'Souffle du volcan', type: 'push', dist: 90, k: 1, chill: 0.5, t: 4, desc: 'Une bouffée de cendres brûlantes repousse les ennemis et les ralentit de moitié pendant 4 secondes.' },
+      { id: 'coulee', name: 'Coulée', type: 'zone', ou: 'ligne', t: 5, effet: 'burn', k: 0.9, look: 'flammes', desc: 'Une rivière de lave traverse le terrain : les ennemis brûlent pendant 5 secondes.' },
+      { id: 'carapace', name: 'Carapace d’obsidienne', type: 'guard', t: 5, k: 0.7, look: 'tortue', desc: 'Tes unités et ta base encaissent 70 % de dégâts en moins pendant 5 secondes.' },
+    ],
     antiquite: [
       { id: 'tortue', name: 'Formation tortue', type: 'guard', t: 5, k: 0.85, look: 'tortue', desc: 'Tes unités et ta base encaissent 85 % de dégâts en moins pendant 5 secondes.' },
       { id: 'feu-gregeois', name: 'Feu grégeois', type: 'zone', ou: 'ligne', t: 5, effet: 'burn', k: 0.9, look: 'flammes', desc: 'Tout le terrain s’embrase : les ennemis brûlent pendant 5 secondes.' },
@@ -86,6 +92,7 @@ window.PA = window.PA || {};
     'frappe-aerienne': 'Quatorze bombes larguées sur les ennemis.', poings: 'Douze poings géants tombent du ciel.',
     bidons: 'Douze bidons explosifs s’écrasent sur les ennemis.', 'frappe-orbitale': 'Douze rayons tirés depuis l’orbite.',
     abduction: 'Douze soucoupes frappent les ennemis de leurs rayons.',
+    'pluie-lave': 'Quatorze bombes de lave s’abattent sur la ligne ennemie.',
   };
   const listes = {};
 

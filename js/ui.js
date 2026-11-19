@@ -125,7 +125,7 @@ window.PA = window.PA || {};
         btn.dataset.idx = i;
         btn.title = locked ? `${u.name} — unité d’élite : à débloquer au camp pour ${fmt(PA.Meta.eliteCost(game.run.age))} ✦` : `${u.name} — ${u.desc} · ${fmt(u.hp)} PV (touche ${i + 1})`;
         // Le bouton montre l'unité elle-même (même dessin que sur le terrain) et son prix.
-        btn.innerHTML = `<img alt="${u.name}" src="${PA.Render.portrait('unit', u)}">${u.elite ? '<i class="star">★</i>' : ''}<span class="cost"></span>`;
+        btn.innerHTML = `<img alt="${u.name}" decoding="sync" src="${PA.Render.portrait('unit', u)}">${u.elite ? '<i class="star">★</i>' : ''}<span class="cost"></span>`;
         btn.onclick = this.act(b2 => b2.buyUnit(i));
         ub.appendChild(btn);
       });
@@ -138,7 +138,7 @@ window.PA = window.PA || {};
         btn.dataset.idx = i;
         const info = t.splash ? 'dégâts de zone' : t.interval < 0.4 ? 'tir rapide' : 'tir précis';
         btn.title = `${t.name} — ${info} · portée ${t.range} (touche ${'AZE'[i]})`;
-        btn.innerHTML = `<img alt="${t.name}" src="${PA.Render.portrait('turret', t)}"><span class="cost">${court(t.cost)}</span>`;
+        btn.innerHTML = `<img alt="${t.name}" decoding="sync" src="${PA.Render.portrait('turret', t)}"><span class="cost">${court(t.cost)}</span>`;
         btn.onclick = this.act(b2 => b2.buyTurret(i));
         tb.appendChild(btn);
       });
@@ -160,8 +160,14 @@ window.PA = window.PA || {};
       // Titre du niveau (avec une étiquette quand la campagne est en difficile)
       const hardTag = game.meta.difficulty === 'difficile' ? '<span class="hard">Difficile</span> · ' : '';
       if (run.mode === 'rush') {
-        this.el['hud-level'].textContent = `Boss rush · ${run.i + 1} / ${run.etapes.length}`;
-        this.el['hud-enemy'].innerHTML = `${hardTag}${b.champDef.name} · ${C.ages[b.enemyAge].name}`;
+        const r = b.rushB;
+        this.el['hud-level'].textContent = `Boss rush · ${C.ages[b.enemyAge].name} (${run.i + 1} / ${run.etapes.length})`;
+        this.el['hud-enemy'].innerHTML = r && r.actuel
+          ? `${hardTag}${r.actuel.name} · champion ${Math.min(r.total, r.tues + 1)} / ${r.total} · ${run.medailles.length} / ${PA.Modes.nbChampions()} vaincus`
+          : `${hardTag}Le premier champion arrive… · ${run.medailles.length} / ${PA.Modes.nbChampions()} vaincus`;
+      } else if (run.mode === 'defi' && b.phase === 'course') {
+        this.el['hud-level'].textContent = 'Défi du jour · course';
+        this.el['hud-enemy'].innerHTML = `${hardTag}<span class="good">Détruis sa base au plus vite</span> · ${run.defi.regle.nom}`;
       } else if (run.mode === 'defi') {
         this.el['hud-level'].textContent = 'Défi du jour';
         this.el['hud-enemy'].innerHTML = b.phase === 'survie'
@@ -189,8 +195,10 @@ window.PA = window.PA || {};
         // Frise des modes à part : un losange par boss du rush, ou les deux phases du défi.
         this.el['hud-track'].dataset.key = trackKey;
         this.el['hud-track'].innerHTML = run.mode === 'rush'
-          ? `<span class="t-grp"><span class="t-age cur">Rush</span>${run.etapes.map((e, i) => `<i class="pip boss ${i < run.i ? 'done' : i === run.i ? 'cur' : ''}" title="${PA.Champions.DEFS[e.age][e.k].name}"></i>`).join('')}</span>`
-          : `<span class="t-grp"><span class="t-age ${b.phase === 'survie' ? 'cur' : ''}">Survie</span><span class="t-age ${b.phase === 'survie' ? '' : 'cur'}">Assaut</span></span>`;
+          ? `<span class="t-grp"><span class="t-age cur">Rush</span>${run.etapes.map((e, i) => `<i class="pip boss ${i < run.i ? 'done' : i === run.i ? 'cur' : ''}" title="${C.ages[e.age].name}"></i>`).join('')}</span>`
+          : b.phase === 'course'
+            ? `<span class="t-grp"><span class="t-age cur">Course</span></span>`
+            : `<span class="t-grp"><span class="t-age ${b.phase === 'survie' ? 'cur' : ''}">Survie</span><span class="t-age ${b.phase === 'survie' ? '' : 'cur'}">Assaut</span></span>`;
       } else if (!run.mode && this.el['hud-track'].dataset.key !== trackKey) {
         this.el['hud-track'].dataset.key = trackKey;
         const per = C.levels.perAge;
@@ -243,6 +251,10 @@ window.PA = window.PA || {};
         this.el['hud-xp-text'].textContent = 'ÂGE MAX';
       }
       this.el['btn-evolve'].disabled = !b.canEvolve();
+      // Âge caché du Magma (js/magma.js) : quand la lave a tout recouvert, Évoluer devient Plonger.
+      const plonge = !!(b.plongeePossible && b.plongeePossible()), labelEvo = plonge ? 'Plonger dans le magma' : 'Évoluer';
+      this.el['btn-evolve'].classList.toggle('magma', plonge);
+      if (this.el['btn-evolve'].textContent !== labelEvo) this.el['btn-evolve'].textContent = labelEvo;
       this.el['btn-evolve'].style.visibility = hasNext ? '' : 'hidden';   // garde sa place : le bandeau ne bouge pas
 
       // Boutons d'achat
@@ -268,19 +280,20 @@ window.PA = window.PA || {};
       });
 
       // File d'entraînement : une pastille par unité en attente, la première se remplit de bas en haut.
+      // Les pastilles restent en place : on ne change que l'image qui doit changer. Reconstruites à chaque
+      // sortie d'unité, leurs images se rechargeaient et, sur téléphone, toute la file clignotait.
       const q = this.el.queue;
-      const qKey = b.queue.map(item => item.def.id).join(',');
-      if (q.dataset.key !== qKey) {
-        q.dataset.key = qKey;
-        let qh = '';
-        for (let i = 0; i < C.economy.queueSize; i++) {
-          const item = b.queue[i];
-          qh += item ? `<div class="q-slot on"><div class="fill"></div><img alt="" src="${PA.Render.portrait('unit', item.def)}"></div>` : '<div class="q-slot"></div>';
-        }
-        q.innerHTML = qh;
+      if (q.children.length !== C.economy.queueSize) {
+        q.innerHTML = '<div class="q-slot"><div class="fill"></div><img alt="" decoding="sync" hidden></div>'.repeat(C.economy.queueSize);
       }
-      const qFill = q.querySelector('.fill');
-      if (qFill && b.queue[0]) qFill.style.height = `${(1 - b.queue[0].t / b.queue[0].total) * 100}%`;
+      [...q.children].forEach((slot, i) => {
+        const item = b.queue[i], img = slot.lastChild, fill = slot.firstChild;
+        const src = item ? PA.Render.portrait('unit', item.def) : '';
+        slot.classList.toggle('on', !!item);
+        if (img.dataset.src !== src) { img.dataset.src = src; if (src) img.src = src; }
+        img.hidden = !item;
+        fill.style.height = i === 0 && item ? `${(1 - item.t / item.total) * 100}%` : '0';
+      });
 
       // Emplacements de tourelles : une case par emplacement, puis « + » pour en acheter un.
       const slotsEl = this.el.slots;
@@ -292,14 +305,18 @@ window.PA = window.PA || {};
         const refund = court(Math.round(def.cost * C.economy.turretSellRefund));
         sh += armed === i
           ? `<button class="slot-chip armed" data-sell="${i}" title="Appuie encore pour vendre"><span>Vendre<b>+${refund}</b></span></button>`
-          : `<button class="slot-chip full" data-sell="${i}" title="${def.name} : appuie pour vendre (+${refund} or)"><img alt="${def.name}" src="${PA.Render.portrait('turret', def)}"><i>×</i></button>`;
+          : `<button class="slot-chip full" data-sell="${i}" title="${def.name} : appuie pour vendre (+${refund} or)"><img alt="${def.name}" decoding="sync" src="${PA.Render.portrait('turret', def)}"><i>×</i></button>`;
       });
       const sc = b.slotCost();
-      if (sc != null) sh += `<button class="slot-chip add${run.gold < sc ? ' cant' : ''}" data-slot="1" title="Acheter un emplacement de tourelle"><b>+</b><span>${court(sc)}</span></button>`;
+      // « cant » se règle à part : sinon chaque passage de l'or au-dessus ou en dessous du prix reconstruisait
+      // toutes les cases, et les images des tourelles posées clignotaient.
+      if (sc != null) sh += `<button class="slot-chip add" data-slot="1" title="Acheter un emplacement de tourelle"><b>+</b><span>${court(sc)}</span></button>`;
       if (slotsEl.dataset.html !== sh) {
         slotsEl.innerHTML = sh;
         slotsEl.dataset.html = sh;
       }
+      const addBtn = slotsEl.querySelector('.add');
+      if (addBtn) addBtn.classList.toggle('cant', run.gold < sc);
 
       // Pouvoir spécial : le bouton se remplit de bas en haut pendant la recharge.
       const sp = b.special;                               // le pouvoir équipé pour cet âge (js/pouvoirs.js)
@@ -451,6 +468,7 @@ window.PA = window.PA || {};
         elites: `<p class="camp-hint">La 4e unité de chaque âge : dégâts de zone, réservée à ton armée.</p><div class="upgrades">${elites}</div>`,
         rush: PA.Modes && tab === 'rush' ? this.panneauRush(meta) : '',
         defi: PA.Modes && tab === 'defi' ? this.panneauDefi(meta) : '',
+        hf: PA.HautsFaits && tab === 'hf' ? PA.HautsFaits.panneau(meta) : '',   // hauts faits (js/hauts-faits.js)
         pouvoirs: `<p class="camp-hint">Un pouvoir équipé par âge. Celui de contrôle est offert ; les trois autres s’achètent une fois l’âge débloqué.</p><div class="upgrades pouvoirs">${pouvoirs}</div>`,
       };
       const tabs = [['ups', '⚒', 'Améliorations'], ['ages', '⏳', 'Âges'], ['play', '⚔', 'Bataille'], ['elites', '★', 'Élites'], ['pouvoirs', '✦', 'Pouvoirs']]
@@ -507,7 +525,7 @@ window.PA = window.PA || {};
         <div class="camp-top">
           <div class="cur" title="Points de prestige"><i>✦</i>${fmt(meta.balance)}</div>
           <div class="seg" title="Chaque difficulté a sa propre progression">${Object.keys(C.difficulties).map(id => `<button data-action="diff" data-arg="${id}" class="d-${id}${id === meta.difficulty ? ' on' : ''}">${C.difficulties[id].name}</button>`).join('')}</div>
-          <div class="side">${meta.totalEarned > meta.balance ? `<span class="muted">Total gagné : ${fmt(meta.totalEarned)} ✦</span>` : ''}<button data-action="musique" class="son${PA.Music.on ? '' : ' off'}" title="Musique : oui / non">♪</button><button data-action="bruitages" class="son${PA.Music.fx ? '' : ' off'}" title="Effets sonores : oui / non">🔊</button><button data-action="tab" data-arg="${tab === 'aide' ? 'play' : 'aide'}" title="Aide et réglages">${tab === 'aide' ? '✕' : '?'}</button></div>
+          <div class="side">${meta.totalEarned > meta.balance ? `<span class="muted">Total gagné : ${fmt(meta.totalEarned)} ✦</span>` : ''}${PA.HautsFaits ? `<button data-action="tab" data-arg="${tab === 'hf' ? 'play' : 'hf'}" class="hf-bouton" title="Hauts faits">${tab === 'hf' ? '✕' : `🏆 ${PA.HautsFaits.nb()}`}</button>` : ''}<button data-action="musique" class="son${PA.Music.on ? '' : ' off'}" title="Musique : oui / non">♪</button><button data-action="bruitages" class="son${PA.Music.fx ? '' : ' off'}" title="Effets sonores : oui / non">🔊</button><button data-action="tab" data-arg="${tab === 'aide' ? 'play' : 'aide'}" title="Aide et réglages">${tab === 'aide' ? '✕' : '?'}</button></div>
         </div>
         <div class="camp-body ${tab === 'play' ? '' : 'list'}">${tab === 'aide' ? `<div>${aide}</div>` : bodies[tab]}</div>
         <nav class="tabs">${tabs}</nav>
@@ -577,7 +595,7 @@ window.PA = window.PA || {};
     panneauRush(meta) {
       const M = PA.Modes, P = C.prestige;
       const ouvert = M.rushOuvert(meta), etapes = M.rushEtapes(meta);
-      const r = meta.rush || { best: 0, temps: null, complets: 0 };
+      const r = meta.rush && meta.rush.v === 2 ? meta.rush : { best: 0, temps: null, complets: 0 };
       const ICONES = [0, 1, 2, 3].map(med);
       const galerie = C.ages.map((age, a) => {
         const cartes = (PA.Champions.DEFS[a] || []).map(d => {
@@ -587,15 +605,14 @@ window.PA = window.PA || {};
         }).join('');
         return `<div class="champ-age"><h4>${P.ageNames[a]}</h4><div class="champ-ligne">${cartes}</div></div>`;
       }).join('');
-      const record = r.best ? `Record : <b>${r.best} boss</b> d’affilée${r.temps != null ? ` en ${fmtTime(r.temps)}` : ''}${r.complets ? ` · ${r.complets} rush${r.complets > 1 ? 's' : ''} complet${r.complets > 1 ? 's' : ''}` : ''}` : 'Pas encore de record.';
+      const nb = M.nbChampions();
+      const record = r.best ? `Record : <b>${r.best} / ${nb} champions</b> d’affilée${r.temps != null ? ` en ${fmtTime(r.temps)}` : ''}${r.complets ? ` · ${r.complets} rush${r.complets > 1 ? 's' : ''} complet${r.complets > 1 ? 's' : ''}` : ''}` : 'Pas encore de record.';
       const bouton = !ouvert
         ? '<button class="primary" disabled>🔒 Atteins un premier assaut final</button>'
-        : etapes.length
-          ? `<button class="primary" data-action="lancerRush">Lancer le rush (${etapes.length} boss)</button>`
-          : '<button class="primary" disabled>Vaincs d’abord un champion en partie</button>';
+        : `<button class="primary" data-action="lancerRush">Lancer le rush (${etapes.length} âges, ${nb} champions)</button>`;
       return `<div class="mode-panneau">
         <h2>♛ Boss rush</h2>
-        <p class="camp-hint">Un champion par âge, à la suite, parmi ceux que tu as déjà vaincus. Ton armée a toujours l’âge du champion. Entre deux boss : une récompense au choix et +25 % de PV pour ta base. Pas de prestige ici, seulement des records et des médailles.</p>
+        <p class="camp-hint">Rien que des boss : les ${nb} champions, âge par âge, les trois de chaque âge l’un après l’autre. Pas d’unités ordinaires en face. Ton armée a l’âge des champions et reçoit un peu d’or chaque seconde. Entre deux âges : une récompense au choix et +25 % de PV pour ta base. Pas de prestige ici, seulement des records et des médailles.</p>
         <p class="mode-record">${record}</p>
         <div class="actions">${bouton}</div>
         <h3>Galerie des champions <small class="legende">${med(1)} vaincu en partie ${med(2)} vaincu au rush ${med(3)} au rush, base au-dessus de 50 %</small></h3>
@@ -606,38 +623,56 @@ window.PA = window.PA || {};
     panneauDefi(meta) {
       const M = PA.Modes, d = M.defi(), s = M.etatDefi(meta);
       const ouvert = M.defiOuvert(meta);
-      const regle = d.regle.id === 'solo' ? `${d.regle.desc} Aujourd’hui : <b>${C.ages[d.age].units[d.solo].name}</b>.` : d.regle.desc;
+      const regle = d.regle.id === 'solo'
+        ? `${d.regle.desc} Aujourd’hui : <b>${d.type === 'course' ? `ton unité n° ${d.solo + 1} (${C.ages[0].units[d.solo].name} au Jurassique)` : C.ages[d.age].units[d.solo].name}</b>.`
+        : d.regle.desc;
       const gain = s.recompense === s.jour ? '<span class="muted">Récompense du jour déjà touchée</span>' : `<b style="color:var(--pp)">+${fmt(M.recompenseDefi(meta))} ✦</b> au premier succès du jour`;
       const best = s.meilleur ? `Ton meilleur aujourd’hui : <b>${fmtTime(s.meilleur.t)}</b>, base à ${s.meilleur.base} %` : 'Pas encore réussi aujourd’hui.';
       return `<div class="mode-panneau">
         <h2>☀ Défi du jour</h2>
         <p class="mode-nom">${d.nom}</p>
         <p class="camp-hint">Le même défi pour tout le monde aujourd’hui. Tes améliorations et tes élites ne comptent pas : tout le monde part à égalité.</p>
-        <div class="defi-grille">
+        ${d.type === 'course' ? this.grilleCourse(d, regle) : `<div class="defi-grille">
           <div><span class="muted">Ton armée</span><b>${C.ages[d.age].name}</b></div>
           <div><span class="muted">L’ennemi</span><b>${C.ages[d.ennemi].name}</b><small>sa base t’attend avec une tourelle</small></div>
           <div><span class="muted">Les vagues</span><b>${d.melange.nom}</b><small>${d.melange.desc}</small></div>
           <div><span class="muted">La règle</span><b>${d.regle.nom}</b><small>${regle}</small></div>
         </div>
-        <ol class="rules defi-etapes"><li><b>Survis ${Math.floor(M.SURVIE / 60)} minutes</b> : la base ennemie est intouchable et envoie des unités de plusieurs âges.</li><li><b>La porte se ferme</b> : plus de renforts. Détruis sa base le plus vite possible.</li></ol>
+        <ol class="rules defi-etapes"><li><b>Survis ${Math.floor(M.SURVIE / 60)} minutes</b> : la base ennemie est intouchable et envoie des unités de plusieurs âges.</li><li><b>La porte se ferme</b> : plus de renforts. Détruis sa base le plus vite possible.</li></ol>`}
         <p class="mode-record">${best} · Essais : ${s.essais} · Série : <b>${s.serie} jour${s.serie > 1 ? 's' : ''}</b><br>${gain}</p>
         <div class="actions">${ouvert ? '<button class="primary" data-action="lancerDefi">Relever le défi</button>' : '<button class="primary" disabled>🔒 Termine d’abord une partie</button>'}</div>
       </div>`;
     },
 
+    // Défi « course » : ce qui t'attend en face.
+    grilleCourse(d, regle) {
+      const unites = d.unites.map(o => `${C.ages[o.age].units[o.idx].name} <span class="muted">(${C.ages[o.age].name})</span>`).join('<br>');
+      const ch = PA.Champions.DEFS[d.champion.age][d.champion.k], t = C.ages[d.tourelle.age].turrets[d.tourelle.idx];
+      return `<div class="defi-grille">
+          <div><span class="muted">Ton armée</span><b>${C.ages[0].name}</b><small>comme une vraie partie : tu évolues avec l’XP</small></div>
+          <div><span class="muted">L’ennemi</span><b>${C.ages[d.ennemi].name}</b><small>sa base est gardée par : ${t.name} (${C.ages[d.tourelle.age].name})</small></div>
+          <div><span class="muted">Ses unités</span><small>${unites}</small></div>
+          <div><span class="muted">Son champion</span><b>${ch.name}</b><small>${C.ages[d.champion.age].name} · revient régulièrement · ${ch.desc}</small></div>
+          <div><span class="muted">La règle</span><b>${d.regle.nom}</b><small>${regle}</small></div>
+        </div>
+        <ol class="rules defi-etapes"><li><b>Pars de zéro</b> : tue, gagne de l’XP et évolue pour rattraper son âge. Ses unités plus récentes arrivent au fil du temps.</li><li><b>Détruis sa base</b> le plus vite possible : c’est ton temps qui compte.</li></ol>`;
+    },
+
     showRushEtape(run, b, choix) {
-      const game = this.game, der = run.medailles[run.medailles.length - 1];
-      const suiv = run.etapes[run.i], ch = PA.Champions.DEFS[suiv.age][suiv.k];
+      const prec = run.etapes[run.i - 1], suiv = run.etapes[run.i];
+      const tombes = run.medailles.slice(-prec.ks.length);
+      const noms = suiv.ks.map(k => PA.Champions.DEFS[suiv.age][k].name).join(', ');
       const cards = choix.map(id => {
         const r = C.relics.find(x => x.id === id), tx = PA.relicText(r, run.relics);
         const style = r.element ? ` style="border-color:${C.elements[r.element].color}"` : '';
         return `<button class="card${r.element ? ' elem' : ''}"${style} data-action="relic" data-arg="${r.id}"><span class="icon">${r.icon}</span><span class="name">${tx.name}</span><span class="desc">${tx.desc}</span></button>`;
       }).join('');
       this.overlay(`
-        <h2>${der.ch.name} est vaincu !</h2>
-        <p class="sub">Temps : ${fmtTime(der.t)} · ${med(der.m)} ${['', '', 'médaille d’argent', 'médaille d’or'][der.m]}${der.neuve ? ' (nouvelle !)' : ''} · Choisis une récompense :</p>
+        <h2>${C.ages[prec.age].name} : tous ses champions sont tombés !</h2>
+        <p class="sub">${tombes.map(x => `${x.ch.name} ${med(x.m)}${x.neuve ? ' <span class="good">nouvelle</span>' : ''}`).join(' · ')}</p>
+        <p class="sub">Temps : ${fmtTime(b.time)} · Choisis une récompense :</p>
         <div class="cards">${cards}</div>
-        <div class="next-box"><b>Prochain boss (${run.i + 1} / ${run.etapes.length}) : ${ch.name}</b> — ${C.ages[suiv.age].name} · ${ch.desc}</div>
+        <div class="next-box"><b>Prochain âge (${run.i + 1} / ${run.etapes.length}) : ${C.ages[suiv.age].name}</b> — ${noms}</div>
         <p class="muted">Ta base récupère 25 % de ses PV et ton or est remplacé par une somme fixe.</p>
       `, { relic: id => PA.Modes.choisirRush(id) });
     },
@@ -648,16 +683,16 @@ window.PA = window.PA || {};
       const titre = o.complet ? 'Rush terminé : tous les boss sont tombés !' : o.result === 'abandon' ? 'Rush abandonné' : 'Ta base est tombée';
       this.overlay(`
         <h2>${titre}</h2>
-        <p class="sub">${run.medailles.length} / ${run.etapes.length} boss vaincus · temps total ${fmtTime(run.temps)}${o.record ? ' · <b class="good">nouveau record !</b>' : ''}</p>
-        ${lignes ? `<table class="breakdown">${lignes}</table>` : ''}
-        <p class="muted">Record : ${o.rec.best} boss d’affilée${o.rec.temps != null ? ` en ${fmtTime(o.rec.temps)}` : ''}.</p>
+        <p class="sub">${run.medailles.length} / ${PA.Modes.nbChampions()} champions vaincus · temps total ${fmtTime(run.temps)}${o.record ? ' · <b class="good">nouveau record !</b>' : ''}</p>
+        ${lignes ? `<div class="rush-liste"><table class="breakdown">${lignes}</table></div>` : ''}
+        <p class="muted">Record : ${o.rec.best} champions d’affilée${o.rec.temps != null ? ` en ${fmtTime(o.rec.temps)}` : ''}.</p>
         <div class="actions"><button data-action="galerie">Voir la galerie</button><button class="primary" data-action="camp">Retour au camp</button></div>
       `, { camp: () => { this.campTab = 'play'; game.showCamp(); }, galerie: () => { this.campTab = 'rush'; game.showCamp(); } });
     },
 
     showDefiFin(o) {
       const game = this.game, s = o.etat;
-      const titre = o.result === 'victory' ? 'Défi réussi !' : o.result === 'abandon' ? 'Défi abandonné' : o.phase === 'survie' ? 'Ta base est tombée pendant la survie' : 'Ta base est tombée pendant l’assaut';
+      const titre = o.result === 'victory' ? 'Défi réussi !' : o.result === 'abandon' ? 'Défi abandonné' : o.phase === 'survie' ? 'Ta base est tombée pendant la survie' : o.phase === 'course' ? 'Ta base est tombée' : 'Ta base est tombée pendant l’assaut';
       this.overlay(`
         <h2>${titre}</h2>
         <p class="sub">${o.defi.nom}</p>

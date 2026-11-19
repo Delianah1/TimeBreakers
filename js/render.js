@@ -63,12 +63,14 @@ window.PA = window.PA || {};
       // Nouveaux graphismes (js/art.js) : quand un élément y a sa version, elle remplace l'ancienne.
       const A = this.art = PA.Art && PA.Art.on ? PA.Art : null;
       const sceneAge = !b ? C.ages[0] : b.mode === 'assault' ? null : C.ages[b.enemyAge];
-      const backdrop = A && A.backdrops[sceneAge ? sceneAge.id : 'assaut'];
+      // Réveil du volcan (âge caché du Magma, js/magma.js) : on reste dans le décor jurassique, le volcan s'éveille.
+      const backdrop = A && A.backdrops[b && b.volcan ? 'jurassique' : sceneAge ? sceneAge.id : 'assaut'];
 
       ctx.save();
       if (b && b.shake > 0) ctx.translate((Math.random() - 0.5) * b.shake * 30, (Math.random() - 0.5) * b.shake * 20);
       if (backdrop) backdrop(ctx, t, dt, this);
       else this.background(ctx, pal, t, dt);
+      if (b && PA.Magma && (b.volcan || b.lave)) PA.Magma.decor(ctx, b, t);
 
       if (!b) {
         this.base(ctx, 1, C.ages[0].base, null);

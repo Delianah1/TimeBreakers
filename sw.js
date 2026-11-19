@@ -1,10 +1,10 @@
-﻿/* =========================================================================
+/* =========================================================================
    SERVICE WORKER : rend le jeu installable et jouable hors ligne.
    StratÃ©gie Â« rÃ©seau d'abord Â» : en ligne on prend toujours la derniÃ¨re
    version (et on la range dans le cache) ; hors ligne on sert le cache.
    Changer VERSION vide l'ancien cache.
    ========================================================================= */
-const VERSION = 'timebreakers-v29';
+const VERSION = 'timebreakers-v31';
 const FICHIERS = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'icones/icone-192.png', 'icones/icone-512.png', 'icones/icone-180.png', 'icones/icone-maskable-512.png',
@@ -13,8 +13,8 @@ const FICHIERS = [
   'polices/fredoka-700-latin.woff2', 'polices/fredoka-700-latin-ext.woff2', 'polices/lilitaone-400-latin.woff2', 'polices/lilitaone-400-latin-ext.woff2',
   'js/version.js', 'js/config.js', 'js/meta.js', 'js/battle.js', 'js/render.js', 'js/art.js',
   'js/art/jurassique.js', 'js/art/antiquite.js', 'js/art/medieval.js', 'js/art/renaissance.js', 'js/art/vapeur.js',
-  'js/art/moderne.js', 'js/art/heros.js', 'js/art/postapo.js', 'js/art/futur.js', 'js/art/alien.js', 'js/art/assaut.js',
-  'js/musique.js', 'js/sons.js', 'js/effets.js', 'js/pouvoirs.js', 'js/champions.js', 'js/modes.js', 'js/ui.js', 'js/tuto.js', 'js/main.js',
+  'js/art/moderne.js', 'js/art/heros.js', 'js/art/postapo.js', 'js/art/futur.js', 'js/art/alien.js', 'js/art/assaut.js', 'js/art/magma.js',
+  'js/musique.js', 'js/sons.js', 'js/effets.js', 'js/pouvoirs.js', 'js/champions.js', 'js/modes.js', 'js/ui.js', 'js/tuto.js', 'js/magma.js', 'js/hauts-faits.js', 'js/main.js',
 ];
 
 self.addEventListener('install', e => {

@@ -87,16 +87,18 @@ window.PA = window.PA || {};
       { id: 'leviathan', name: 'Léviathan des sables', genre: 'colosse', w: 64, h: 112, cap: { type: 'fouisseur', but: 'base' }, desc: 'Il file sous terre et ressort sous ta base.' },
     ],
   };
-  const DEFS = C.ages.map(age => (TABLE[age.id] || []).map(o => {
+  // Les trois champions d'un âge (aussi pour l'âge caché du Magma, js/magma.js).
+  const construire = age => (TABLE[age.id] || []).map(o => {
     const b = age.champion, A = ARCH[o.genre];
     const d = Object.assign({}, b, o);
     d.id = 'ch-' + o.id; d.hp = Math.round(b.hp * A.hp); d.dmg = b.dmg * A.dmg;
     if (o.kind !== 'ranged') { d.kind = 'melee'; d.reach = o.reach || b.reach; }
     return d;
-  }));
+  });
+  const DEFS = C.ages.map(construire);
 
   const CH = PA.Champions = {
-    TABLE, DEFS, GENRES,
+    TABLE, DEFS, GENRES, construire,
     // Le tirage d'une run : un rang (0 à 2) par âge.
     tirer() { return DEFS.map(l => Math.floor(Math.random() * Math.max(1, l.length))); },
     // Le champion de cet âge pour cette run (au hasard s'il n'y a pas de tirage : vitrine, essais).
@@ -164,7 +166,7 @@ window.PA = window.PA || {};
       if (b.eu.length >= MAXE) return;
       const def = b.enemyAgeDef.units[u.def.cap.unite];
       for (let i = 0; i < u.def.cap.n; i++) invoquer(b, def, u.x + u.w / 2 + 16 + i * (def.w + 6));
-      cs.cri = 1; titre(b, u, '+3 raptors', '#ffd76a'); b.sortUnits();
+      cs.cri = 1; titre(b, u, u.def.cap.cri || '+3 raptors', '#ffd76a'); b.sortUnits();
     },
     rapt(b, u, dt, cs) {
       if (cs.proie) {
@@ -385,6 +387,16 @@ window.PA = window.PA || {};
       }
     },
     pille() {},
+    // Titan de magma : laisse des coulées qui brûlent tes troupes, et se soigne quand il marche dessus.
+    coulee(b, u, dt, cs, E) {
+      if (E.zones.some(z => z.lave && Math.abs(z.x - u.x) <= z.r)) {
+        u.hp = Math.min(u.maxHp, u.hp + u.maxHp * 0.015 * dt);
+        if (Math.random() < dt * 3) b.particles.push({ x: u.x + rand(-16, 16), y: GROUND - rand(10, u.h), vx: 0, vy: -60, life: 0.6, max: 0.6, color: '#8dff7a', size: 3 });
+      }
+      cs.t -= dt; if (cs.t > 0) return; cs.t = u.def.cap.every;
+      E.zones.push({ x: u.x - 10, r: 44, t: 8, max: 8, dps: u.dmg * 0.22, lave: true });
+    },
+    renait(b, u, dt, cs) { cs.fx = Math.max(0, cs.fx - dt); },
     flaques(b, u, dt, cs, E) {
       cs.t -= dt; if (cs.t > 0) return; cs.t = u.def.cap.every;
       E.zones.push({ x: u.x - 12, r: 46, t: 9, max: 9, dps: u.dmg * 0.25 });
@@ -460,7 +472,7 @@ window.PA = window.PA || {};
 
     for (const z of E.zones) {
       z.t -= dt;
-      for (const p of b.pu) if (vivant(p) && Math.abs(p.x - z.x) <= z.r + p.w / 2) { b.damageUnit(p, z.dps * dt, true, 'pouvoir'); p.poisonCh = 0.3; }
+      for (const p of b.pu) if (vivant(p) && Math.abs(p.x - z.x) <= z.r + p.w / 2) { b.damageUnit(p, z.dps * dt, true, 'pouvoir'); if (!z.lave) p.poisonCh = 0.3; }
     }
     E.zones = E.zones.filter(z => z.t > 0);
     for (const o of E.oeufs) {
@@ -497,6 +509,14 @@ window.PA = window.PA || {};
       case 'armure': if (src === 'tir' || src === 'zone') { dmg *= 0.25; if (Math.random() < 0.3) b.spark(u.x, GROUND - u.h * 0.6, '#c9d2e3', 2); } break;
       case 'blindage': if (src === 'tir' || src === 'melee') { dmg *= 0.25; if (Math.random() < 0.3) b.spark(u.x - u.w / 2, GROUND - u.h * 0.4, '#fff3c4', 2); } else if (src === 'brulure') dmg *= 0.5; break;
       case 'croissance': if (src !== 'brulure') cs.grow = Math.min(0.8, cs.grow + 0.012); break;
+      case 'renait':
+        // Phénix des cendres : le coup fatal le fait renaître une fois, à la moitié de ses PV.
+        if (!cs.mort && dmg >= u.hp) {
+          cs.mort = true; cs.fx = 1.2; dmg = 0; u.hp = u.maxHp * 0.5; u.burn = null; u.stun = 0.8;
+          titre(b, u, 'IL RENAÎT DE SES CENDRES !', '#ffb44a'); anneau(b, u.x, 100, '#ff8a3c'); b.shake = Math.max(b.shake, 0.25);
+          for (let i = 0; i < 24; i++) b.particles.push({ x: u.x + rand(-30, 30), y: GROUND - (u.alt || 0) - rand(0, 50), vx: rand(-120, 120), vy: rand(-200, -40), life: rand(0.5, 1), max: 1, color: i % 2 ? '#ff8a3c' : '#6a5a5a', size: rand(2, 5) });
+        }
+        break;
       case 'bouclier':
         if (cs.bou > 0) {
           const a = Math.min(cs.bou, dmg); cs.bou -= a; dmg -= a; cs.fx = 0.15;
@@ -1098,8 +1118,8 @@ window.PA = window.PA || {};
     c = ctx; T = performance.now() / 1000; ctx.save();
     for (const z of E.zones) {
       const a = Math.min(1, z.t, (z.max - z.t) * 3);
-      ctx.globalAlpha = 0.8 * a; ell(z.x, GROUND + 2, z.r, 7, '#8dff3a', 0, 2);
-      ctx.globalAlpha = a; for (let j = 0; j < 3; j++) { const k = (T * 1.3 + j / 3 + z.x * 0.01) % 1; rond(z.x - z.r * 0.5 + j * z.r * 0.5, GROUND - k * 16, 3 * (1 - k), '#c8ff6a', 1); }
+      ctx.globalAlpha = 0.8 * a; ell(z.x, GROUND + 2, z.r, 7, z.lave ? '#ff6a22' : '#8dff3a', 0, 2);
+      ctx.globalAlpha = a; for (let j = 0; j < 3; j++) { const k = (T * 1.3 + j / 3 + z.x * 0.01) % 1; rond(z.x - z.r * 0.5 + j * z.r * 0.5, GROUND - k * 16, 3 * (1 - k), z.lave ? '#ffd36a' : '#c8ff6a', 1); }
     }
     ctx.globalAlpha = 1;
     for (const o of E.oeufs) { const w = o.t < 1 ? Math.sin(T * 30) * 2 : 0; ell(o.x + w, GROUND - 10, 8, 11, '#e8d8f8'); if (o.t < 1) ligne(o.x - 4, GROUND - 14, o.x + 3, GROUND - 6, INK, 1.4); }

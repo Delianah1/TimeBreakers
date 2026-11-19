@@ -6,14 +6,18 @@
      2 argent : vaincu dans le boss rush
      3 or     : vaincu dans le boss rush, base encore au-dessus de 50 %
 
-   BOSS RUSH : débloqué par un premier assaut final. Un combat par âge, dans l'ordre, contre un champion
-   déjà vaincu de cet âge. Ton armée est toujours du même âge que lui, l'or est remis à un montant fixe,
-   et entre deux boss : une récompense au choix et +25 % de PV pour la base. Pas de prestige : des records.
+   BOSS RUSH : débloqué par un premier assaut final. Rien que des boss : un combat par âge, dans l'ordre,
+   contre ses trois champions l'un après l'autre (pas d'unités ordinaires, base ennemie intouchable, sans
+   tourelle). Ton armée a l'âge des champions, l'or est remis à un montant fixe et coule un peu chaque
+   seconde ; entre deux âges : une récompense au choix et +25 % de PV pour la base. Des records, pas de prestige.
 
-   DÉFI DU JOUR : le même pour tout le monde ce jour-là (tiré à partir de la date). Ton âge, l'avance de
-   l'ennemi, le mélange des vagues et une règle changent chaque jour. Il ne tient compte ni de tes
-   améliorations ni de tes élites. 1) Survivre : la base ennemie est intouchable et envoie des unités
-   de plusieurs âges. 2) La porte se ferme : plus de renforts, va détruire sa base.
+   DÉFI DU JOUR : le même pour tout le monde ce jour-là (tiré à partir de la date), un jour sur deux de chaque sorte.
+   Il ne tient compte ni de tes améliorations ni de tes élites, et une règle change chaque jour.
+     - survie : tu pars à un âge donné. 1) Survivre : la base ennemie est intouchable et envoie des unités
+       de plusieurs âges. 2) La porte se ferme : plus de renforts, va détruire sa base.
+     - course : tu pars du Jurassique comme une vraie partie et tu évolues. En face, un âge plus haut :
+       trois unités de trois âges différents, une tourelle d'un autre âge, un champion de temps en temps.
+       Détruis sa base le plus vite possible.
    Le premier défi réussi de la journée rapporte un peu de prestige.
    ========================================================================= */
 window.PA = window.PA || {};
@@ -48,14 +52,27 @@ window.PA = window.PA || {};
     { id: 'fortin', nom: 'Le fortin', desc: 'Ta base a 50 % de PV en plus.' },
   ];
   const SURVIE = 180;   // secondes à tenir avant que la porte ennemie se ferme
-  // Boss rush : le champion arrive après champ secondes, l'escorte a cette part de l'or d'un niveau de boss,
-  // et chaque combat commence avec or × le minimum d'un début de niveau, plus une tourelle offerte.
-  // Mesuré au pilote (outils/pilote-modes.js, sauvegarde neuve) : à or 3,5 / escorte 0,7, 3 rushs complets sur 4,
-  // tout en or ; à 2,5 / 1, la moitié des rushs complets, l'autre moitié tombe au Chevalier noir.
-  const RUSH = { champ: 15, escorte: 1, or: 2.5 };
+  // Boss rush : chaque combat commence avec or × le minimum d'un début de niveau, plus une tourelle offerte ;
+  // revenu : or par seconde (part de ce même minimum) ; premier / pause : secondes avant le premier champion
+  // et entre la mort de l'un et l'arrivée du suivant ; stat : PV et dégâts des champions.
+  const RUSH = { or: 2.5, revenu: 1 / 30, premier: 4, pause: 5, stat: 1, statParAge: 0.1 };
+  // Défi « course » : l'ennemi suit ta croissance, comme les niveaux d'une vraie partie.
+  //  - revenu : celui d'un 1er niveau de TON âge (sans dépasser le sien), qui grandit de 100 % toutes les rampe secondes,
+  //    jusqu'à plafond × le revenu d'un 1er niveau de son âge (× breche avec la règle « La brèche ») ; avec celui d'un
+  //    niveau de boss, une fois son âge rattrapé, le pilote ne touchait plus sa base (sans plafond, il finissait par sortir une petite
+  //    unité par instant devant sa base, et ta mêlée ne l'atteignait plus jamais) ;
+  //  - une unité ou le champion d'un âge plus récent que le tien n'arrive que quand tu atteins cet âge, ou au bout
+  //    de portes[i] / champPorte secondes si tu traînes (sinon, au pilote, la mêlée de pierre écrasait le Jurassique à 2 min) ;
+  //  - poids puis poidsTard (quand les trois unités sont là) : leurs chances d'être choisies ;
+  //  - champ1 / champ : premier champion une fois qu'il peut venir, puis délai après la mort du précédent ;
+  //  - cadence : secondes minimum entre deux unités (sans elle, riche, l'IA sortait ses petites unités anciennes
+  //    à la chaîne devant sa base : 50 minutes de blocage au pilote) ; l'or en trop part dans les unités récentes ;
+  //  - base : PV de sa base (× ceux d'un premier niveau de son âge) ; stat : PV et dégâts de ses unités.
+  const COURSE = { rampe: 600, plafond: 1, portes: [0, 240, 420], poids: [0.5, 0.32, 0.18], poidsTard: [0.2, 0.35, 0.45],
+    cadence: 2.5, breche: 1.4, champPorte: 360, champ1: 30, champ: 120, base: 0.8, stat: 1.05 };
 
   const Modes = {
-    MELANGES, REGLES, SURVIE, RUSH,
+    MELANGES, REGLES, SURVIE, RUSH, COURSE,
     DEFI_REVENU: 1 / 40,   // or par seconde au défi = cette part de l'or minimum d'un début de niveau de ton âge
     // Réglages mesurés au pilote (outils/pilote-modes.js, 8 jours différents) : l'IA plafonne à 14 unités,
     // c'est donc leur force qui fait la pression, pas l'or. À ×1,3 le pilote finissait toujours avec sa base
@@ -79,7 +96,13 @@ window.PA = window.PA || {};
       const game = b.game, run = b.run;
       if (game.demo || (PA.Tuto && PA.Tuto.actif)) return;
       if (run.mode === 'rush') {
-        b.champTue = true;
+        const r = b.rushB; if (!r) return;
+        const m = run.base.hp / Math.max(1, run.base.maxHp) >= 0.5 ? 3 : 2;
+        const neuve = this.donner(game.meta, u.def.id, m);
+        run.medailles.push({ ch: u.def, m, neuve, t: b.time - r.t0 });
+        r.t0 = b.time; r.tues++;
+        if (r.tues >= r.total) b.champTue = true;   // les trois champions de l'âge sont tombés
+        else game.toast(`${u.def.name} est vaincu ! Champion suivant…`);
         return;
       }
       if (!run.mode && this.donner(game.meta, u.def.id, 1)) game.toast(`${u.def.name} rejoint ta galerie des champions !`);
@@ -90,14 +113,17 @@ window.PA = window.PA || {};
 
     // ============================================================== boss rush
     rushOuvert(meta) { return !!meta.rushOuvert || PA.DEV; },
-    rushEtapes(meta) {
+    // Une étape par âge, avec tous ses champions dans un ordre tiré au sort.
+    rushEtapes() {
       const out = [];
       for (let a = 0; a < C.ages.length; a++) {
-        const l = this.vaincus(meta, a);
-        if (l.length) out.push({ age: a, k: l[Math.floor(Math.random() * l.length)].k });
+        const ks = (PA.Champions.DEFS[a] || []).map((d, k) => k);
+        for (let i = ks.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ks[i], ks[j]] = [ks[j], ks[i]]; }
+        if (ks.length) out.push({ age: a, ks });
       }
       return out;
     },
+    nbChampions() { return PA.Champions.DEFS.flat().length; },
     lancerRush() {
       const game = PA.Game, meta = game.meta;
       const etapes = this.rushEtapes(meta);
@@ -115,34 +141,74 @@ window.PA = window.PA || {};
       const game = PA.Game, run = game.run, e = run.etapes[run.i];
       const ratio = premier ? 1 : run.base.hp / Math.max(1, run.base.maxHp);
       run.age = e.age;
-      run.champions[e.age] = e.k;
-      game.playableAges = e.age + 1;               // pas d'évolution : l'armée a l'âge du champion
+      run.champions[e.age] = e.ks[0];
+      game.playableAges = e.age + 1;               // pas d'évolution : l'armée a l'âge des champions
       game.totalLevels = run.etapes.length;
       game.refreshBaseMax();
       run.base.hp = Math.max(1, Math.round(run.base.maxHp * ratio));
       run.gold = C.economy.minGoldAtLevelStart[e.age] * RUSH.or;
       run.turrets = [{ age: e.age, idx: 0, cd: 0.5 }, null];
-      const ch = PA.Champions.DEFS[e.age][e.k];
       this.combat({ mode: 'level', enemyAge: e.age, levelNumber: run.i + 1, blockIndex: C.levels.perAge - 1, special: 'rush',
-        banniere: { title: `BOSS ${run.i + 1} / ${run.etapes.length}`, sub: `${ch.name} · ${C.ages[e.age].name}`, color: '#ff8a6a' } });
+        banniere: { title: `${C.ages[e.age].name.toUpperCase()} · ${run.i + 1} / ${run.etapes.length}`, sub: `${e.ks.length} champions à abattre, l’un après l’autre`, color: '#ff8a6a' } });
+    },
+    // Réglages du combat du rush (appelé par le constructeur du combat) : rien que les champions.
+    preparerRush(b) {
+      const e = b.run.etapes[b.run.i];
+      b.rushB = { file: e.ks.slice(), total: e.ks.length, tues: 0, t: RUSH.premier, t0: 0, actuel: null };
+      b.statMult = b.baseStatMult = b.statMult * (RUSH.stat + RUSH.statParAge * b.run.i);   // de plus en plus durs
+      b.enemyBase.invulnerable = true;
+      b.enemyTurrets = [];
+      b.ai.income = 0; b.ai.gold = 0;
+      b.isBoss = false;
+    },
+    majRush(b, dt) {
+      const r = b.rushB;
+      if (!r.file.length || b.eu.some(u => u.isChampion && !u.dead && !u.clone)) return;
+      r.t -= dt;
+      if (r.t > 0) return;
+      const def = PA.Champions.DEFS[b.enemyAge][r.file[0]];
+      if (!b.canSpawn(-1, def.w)) return;
+      r.file.shift();
+      r.actuel = def; b._champ = def;            // le HUD et les dessins lisent b.champDef
+      if (!r.tues) r.t0 = b.time;
+      b.spawnEnemy(def, true);
+      b.sortUnits();
+      r.t = RUSH.pause;
+      b.game.toast(`${def.name} entre en scène ! (${r.tues + 1} / ${r.total})`, 'big');
     },
 
     // ============================================================ défi du jour
     defiOuvert(meta) { return meta.runs >= 1 || PA.DEV; },
     // Le défi d'un jour donné : toujours le même pour une même date.
-    defi(jour) {
+    // type : seulement pour les essais (forcer 'survie' ou 'course').
+    defi(jour, type) {
       jour = jour || aujourdhui();
       const r = hasard(graine('timebreakers-' + jour));
       const pick = l => l[Math.floor(r() * l.length)];
       const nAges = C.ages.length;
-      const age = 1 + Math.floor(r() * Math.min(6, nAges - 4));         // ton âge : Pierre à Moderne
-      const avance = 2 + Math.floor(r() * 2);                          // l'ennemi a 2 ou 3 âges d'avance
-      const melange = pick(MELANGES), regle = pick(REGLES);
-      const solo = Math.floor(r() * 3);
       const [a, m, j] = jour.split('-').map(Number);
       const nomJour = JOURS[new Date(a, m - 1, j).getDay()];
-      return { jour, nomJour, age, ennemi: Math.min(nAges - 1, age + avance), melange, regle, solo,
-        nom: `${nomJour[0].toUpperCase() + nomJour.slice(1)} : ${melange.nom.charAt(0).toLowerCase() + melange.nom.slice(1)}` };
+      const Jour = nomJour[0].toUpperCase() + nomJour.slice(1);
+      type = type || (Math.round(Date.UTC(a, m - 1, j) / 864e5) % 2 ? 'course' : 'survie');   // un jour sur deux
+      const regle = pick(REGLES), solo = Math.floor(r() * 3);
+      if (type === 'course') {
+        const ennemi = r() < 0.55 ? 2 : 3;                               // Antiquité ou Médiéval
+        const autres = [...Array(ennemi).keys()];
+        while (autres.length > 2) autres.splice(Math.floor(r() * autres.length), 1);
+        const ages3 = [...autres, ennemi];                               // trois âges différents, du plus ancien au plus récent
+        const unites = ages3.map(ag => ({ age: ag, idx: Math.floor(r() * 3) }));
+        const chAge = ages3[1 + Math.floor(r() * 2)];
+        const champion = { age: chAge, k: Math.floor(r() * PA.Champions.DEFS[chAge].length) };
+        // pas la 3e tourelle d'un âge (onagre, canon…) : avec sa portée et sa zone, au pilote, la base devenait imprenable
+        const tourelle = { age: Math.floor(r() * ennemi), idx: Math.floor(r() * 2) };
+        return { type, jour, nomJour, age: 0, ennemi, unites, champion, tourelle, regle, solo,
+          melange: { nom: 'La course des âges' }, nom: `${Jour} : la course des âges` };
+      }
+      const age = 1 + Math.floor(r() * Math.min(6, nAges - 4));         // ton âge : Pierre à Moderne
+      const avance = 2 + Math.floor(r() * 2);                          // l'ennemi a 2 ou 3 âges d'avance
+      const melange = pick(MELANGES);
+      return { type, jour, nomJour, age, ennemi: Math.min(nAges - 1, age + avance), melange, regle, solo,
+        nom: `${Jour} : ${melange.nom.charAt(0).toLowerCase() + melange.nom.slice(1)}` };
     },
     // Les records du défi pour aujourd'hui (remis à zéro chaque jour ; la série, elle, continue).
     etatDefi(meta) {
@@ -156,11 +222,28 @@ window.PA = window.PA || {};
       const P = C.prestige;
       return Math.round((P.levelBase + P.levelPerIndex * Math.max(C.levels.perAge, meta.bestLevel || 0)) * 2);
     },
-    lancerDefi(jour) {   // jour : seulement pour les essais (outils/pilote-modes.js)
-      const game = PA.Game, meta = game.meta, d = this.defi(jour);
+    lancerDefi(jour, type) {   // jour, type : seulement pour les essais (outils/pilote-modes.js)
+      const game = PA.Game, meta = game.meta, d = this.defi(jour, type);
       const s = this.etatDefi(meta); s.essais++; PA.Meta.save(meta);
       // Méta neutre : ni améliorations, ni élites, ni pouvoirs achetés. Tout le monde part à égalité.
       const neutre = PA.Meta.defaults(meta.difficulty);
+      if (d.type === 'course') {
+        // Comme une vraie partie : Jurassique, or de départ, un emplacement de tourelle, et on évolue.
+        game.run = {
+          mode: 'defi', defi: d, metaNeutre: neutre, temps: 0,
+          age: 0, xp: 0, gold: C.economy.startGold, base: { hp: 0, maxHp: 0 },
+          turrets: d.regle.id === 'or2' ? [] : [null], relics: [],
+          level: 1, levelsDone: 0, ppLevels: 0, ppAssault: 0, ppLost: 0, assaultWave: 0, champions: null,
+        };
+        game.playableAges = Math.min(C.ages.length, d.ennemi + 2);   // on peut dépasser l'ennemi d'un âge
+        game.totalLevels = 1;
+        game.refreshBaseMax();
+        game.run.base.hp = game.run.base.maxHp;
+        game.speed = Math.min(game.speed, PA.Meta.maxSpeed(meta));
+        this.combat({ mode: 'level', enemyAge: d.ennemi, levelNumber: 1, blockIndex: 0, special: 'defi',
+          banniere: { title: 'DÉFI DU JOUR', sub: `La course des âges · ${d.regle.nom}`, sub2: `Pars du Jurassique, évolue et détruis sa base au plus vite`, color: '#7fd6ff' } });
+        return;
+      }
       game.run = {
         mode: 'defi', defi: d, metaNeutre: neutre, temps: 0,
         age: d.age, xp: 0, gold: C.economy.minGoldAtLevelStart[d.age] * 3, base: { hp: 0, maxHp: 0 },
@@ -179,6 +262,20 @@ window.PA = window.PA || {};
     preparerDefi(b) {
       const d = b.run.defi, L = C.levels, p = d.age;
       b.defi = d;
+      if (d.type === 'course') {
+        b.statMult = b.baseStatMult = L.statMult[0] * b.diffStat * COURSE.stat;
+        const hp = Math.round(L.enemyBaseHp[d.ennemi][0] * COURSE.base * (d.regle.id === 'breche' ? 0.5 : 1));
+        b.enemyBase = { hp, maxHp: hp, invulnerable: false };
+        b.enemyTurrets = [{ age: d.tourelle.age, idx: d.tourelle.idx, cd: 3 }];
+        b.ai.gold = L.enemyStartGold[0];
+        b.ai.income = L.enemyIncome[0][0];
+        b.ai.champT = COURSE.champ1;
+        b.isBoss = false; b.rushLeft = 0;
+        b.phase = 'course';
+        if (d.regle.id === 'or2') b.mods.goldGain += 1;
+        if (d.regle.id === 'pouvoir') b.mods.specialCd = Math.max(-0.7, b.mods.specialCd - 0.5);
+        return;
+      }
       b.statMult = L.statMult[L.perAge - 1] * (b.diff.enemyStat + (b.diff.enemyStatPerAge || 0) * p) * this.DEFI_STAT;
       b.baseStatMult = b.statMult;
       const hp = Math.round(L.enemyBaseHp[p][L.perAge - 1] * this.DEFI_BASE * (d.regle.id === 'breche' ? 0.5 : 1));
@@ -195,6 +292,7 @@ window.PA = window.PA || {};
     // L'IA du défi : elle achète des unités de plusieurs âges, puis s'arrête quand la porte se ferme.
     majDefi(b, dt) {
       const d = b.defi, ai = b.ai, L = C.levels;
+      if (d.type === 'course') return this.majCourse(b, dt);
       if (b.phase === 'survie' && b.time >= SURVIE) {
         b.phase = 'assaut';
         b.enemyBase.invulnerable = false;
@@ -224,6 +322,48 @@ window.PA = window.PA || {};
       }
     },
 
+    // L'IA de la course : trois unités de trois âges (les plus récentes arrivent plus tard), un revenu
+    // qui grandit avec le temps, et un champion dès que le précédent est mort depuis un moment.
+    majCourse(b, dt) {
+      const d = b.defi, ai = b.ai, L = C.levels;
+      const age = b.run.age;
+      const plafond = L.enemyIncome[d.ennemi][0] * COURSE.plafond;
+      ai.income = Math.min(plafond, L.enemyIncome[Math.min(d.ennemi, age)][0] * (1 + b.time / COURSE.rampe)) * (d.regle.id === 'breche' ? COURSE.breche : 1);
+      ai.gold += ai.income * dt;
+      if (b.time < 2) return;
+      const ok = d.unites.map((o, i) => o.age <= age || b.time >= COURSE.portes[i]);
+      // une unité devenue permise après coup : on rejette un choix fait avant, pour qu'elle ait sa chance
+      if (ai.pick != null && ai.okN !== ok.filter(Boolean).length) ai.pick = null;
+      ai.okN = ok.filter(Boolean).length;
+      if (ai.pick == null) {
+        const tard = ok.every(Boolean);
+        const w = (tard ? COURSE.poidsTard : COURSE.poids).map((p, i) => (ok[i] ? p : 0));
+        // riche : il garde son or pour la plus récente des unités permises
+        const rec = ok.lastIndexOf(true), cr = C.ages[d.unites[rec].age].units[d.unites[rec].idx].cost;
+        ai.pick = d.unites[ai.gold >= cr * 2 ? rec : pick(w)];
+      }
+      ai.cad = (ai.cad || 0) - dt;
+      const def = C.ages[ai.pick.age].units[ai.pick.idx];
+      if (ai.cad <= 0 && ai.gold >= def.cost && b.eu.length < L.maxEnemyUnits && b.canSpawn(-1, def.w)) {
+        ai.gold -= def.cost;
+        ai.cad = COURSE.cadence;
+        b.spawnEnemy(def, false, null, ai.pick.age);
+        ai.pick = null;
+        b.sortUnits();
+      }
+      const enJeu = b.eu.some(u => u.isChampion && !u.dead && !u.clone);
+      const chOk = d.champion.age <= age || b.time >= COURSE.champPorte;
+      if (!enJeu && chOk) ai.champT -= dt;
+      const ch = PA.Champions.DEFS[d.champion.age][d.champion.k];
+      if (!enJeu && ai.champT <= 0 && b.canSpawn(-1, ch.w)) {
+        b._champ = ch;
+        b.spawnEnemy(ch, true, null, d.champion.age);
+        ai.champT = COURSE.champ;
+        b.game.toast(`${ch.name} entre en scène !`, 'big');
+        b.sortUnits();
+      }
+    },
+
     // ============================================================== communs
     combat(opts) {
       const game = PA.Game;
@@ -244,11 +384,7 @@ window.PA = window.PA || {};
       run.temps += b.time;
       const basePct = run.base.hp / Math.max(1, run.base.maxHp);
       if (run.mode === 'rush') {
-        if (result === 'victory') {
-          const e = run.etapes[run.i], ch = PA.Champions.DEFS[e.age][e.k];
-          const m = basePct >= 0.5 ? 3 : 2;
-          const neuve = this.donner(meta, ch.id, m);
-          run.medailles.push({ ch, m, neuve, t: b.time });
+        if (result === 'victory') {   // les médailles sont données à chaque champion abattu (championTue)
           run.i++;
           if (run.i < run.etapes.length) return PA.UI.showRushEtape(run, b, this.choixRecompenses(run));
         }
@@ -272,8 +408,9 @@ window.PA = window.PA || {};
     },
     finRush(run, result) {
       const meta = PA.Game.meta;
-      const r = meta.rush = Object.assign({ best: 0, temps: null, complets: 0 }, meta.rush || {});
-      const n = run.medailles.length, complet = n >= run.etapes.length;
+      // v2 : le record compte des champions (33), plus des boss (un par âge) : les anciens records repartent de zéro.
+      const r = meta.rush = Object.assign({ best: 0, temps: null, complets: 0 }, meta.rush && meta.rush.v === 2 ? meta.rush : {}, { v: 2 });
+      const n = run.medailles.length, complet = n >= this.nbChampions();
       let record = false;
       if (n > r.best || (n === r.best && n > 0 && (r.temps == null || run.temps < r.temps))) { r.best = n; r.temps = Math.round(run.temps); record = true; }
       if (complet) r.complets++;

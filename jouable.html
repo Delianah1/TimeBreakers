@@ -77,6 +77,7 @@ body.in-menu #hud, body.in-menu #dock, body.in-menu #btn-special { display: none
 #btn-evolve { font-size: 1.5cqw; padding: 0.35cqw 1.3cqw; }
 #btn-evolve:disabled { opacity: 0.4; filter: grayscale(0.6); }
 #btn-evolve:not(:disabled) { background: linear-gradient(#ffe36a, #f2a91f); color: #5a3a00; text-shadow: none; animation: pulse 0.8s infinite alternate; }
+#btn-evolve.magma:not(:disabled) { background: linear-gradient(#ff8a3c, #c8281a); color: #fff3d6; text-shadow: 0 0.1cqw 0 #5a1208; }
 @keyframes pulse { from { box-shadow: 0 0.45cqw 0 #8f5a00, 0 0 0 0 rgba(255,210,63,0.7); } to { box-shadow: 0 0.45cqw 0 #8f5a00, 0 0 1.6cqw 0.6cqw rgba(255,210,63,0.75); } }
 .round { width: 3.6cqw; height: 3.6cqw; border-radius: 50%; font-size: 1.35cqw; display: grid; place-items: center; padding: 0; }
 .round.quit { background: linear-gradient(#ff8a7a, var(--red)); box-shadow: 0 0.45cqw 0 var(--red-d), inset 0 0.35cqw 0 rgba(255,255,255,0.3); }
@@ -267,6 +268,8 @@ details.dev summary { cursor: pointer; color: var(--muted); }
 .defi-grille > div { display: flex; flex-direction: column; gap: calc(var(--u) * 0.2); background: var(--navy-d); border: calc(var(--u) * 0.3) solid #24488e; border-radius: calc(var(--u) * 1.4); padding: calc(var(--u) * 0.9) calc(var(--u) * 1.2); }
 .defi-grille b { font-family: var(--f-title); font-weight: 400; font-size: calc(var(--u) * 1.9); }
 .defi-grille small { color: #c4d6f6; font-size: calc(var(--u) * 1.3); }
+.defi-grille > div:nth-child(5):last-child { grid-column: 1 / -1; }   /* défi « course » : la règle sur toute la largeur */
+.rush-liste { max-height: calc(var(--u) * 26); overflow-y: auto; }
 .defi-etapes { margin: calc(var(--u) * 1) 0; }
 .galerie { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--u) * 26), 1fr)); gap: calc(var(--u) * 1); }
 .champ-age h4 { margin: 0 0 calc(var(--u) * 0.4); font-family: var(--f-title); font-weight: 400; font-size: calc(var(--u) * 1.6); color: #d6e4ff; }
@@ -318,6 +321,31 @@ details.dev summary { cursor: pointer; color: var(--muted); }
 @keyframes tilt { from { transform: rotate(0); } to { transform: rotate(-90deg); } }
 @media (max-width: 700px) { .upgrades, .choice-grid { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+
+/* ---------------------------------------------------------------- hauts faits (js/hauts-faits.js) */
+.hf-bandeau { --u: clamp(5.4px, 1.05vw, 11px); position: fixed; left: 50%; top: max(8px, env(safe-area-inset-top, 0px)); z-index: 40; transform: translate(-50%, -140%); transition: transform 0.45s cubic-bezier(.2,1.3,.4,1); display: flex; align-items: center; gap: calc(var(--u) * 1.2); min-width: min(92vw, calc(var(--u) * 44)); max-width: 92vw; padding: calc(var(--u) * 0.9) calc(var(--u) * 1.6); background: linear-gradient(#2a5fc4, #1a3f96); border: calc(var(--u) * 0.4) solid var(--yellow); border-radius: calc(var(--u) * 1.6); box-shadow: 0 calc(var(--u) * 0.6) 0 var(--navy-d), 0 10px 40px rgba(0,0,0,0.5); color: #fff; pointer-events: none; font-size: calc(var(--u) * 1.4); }
+.hf-bandeau.on { transform: translate(-50%, 0); }
+.hf-bandeau > i { font-style: normal; font-size: calc(var(--u) * 3); }
+.hf-bandeau > div { display: flex; flex-direction: column; flex: 1; }
+.hf-bandeau small { color: var(--yellow); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75em; }
+.hf-bandeau b { font-family: var(--f-title); font-size: 1.35em; font-weight: 400; }
+.hf-bandeau span { color: #d6e4ff; }
+.hf-bandeau em { font-style: normal; color: var(--yellow); font-weight: 700; white-space: nowrap; }
+.hf-theme { display: flex; align-items: baseline; gap: calc(var(--u) * 0.8); margin: calc(var(--u) * 1.4) 0 calc(var(--u) * 0.6); font-family: var(--f-title); font-weight: 400; color: var(--yellow); }
+.hf-theme small { font-family: inherit; color: #9fb8e8; font-size: 0.75em; }
+.hf-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--u) * 30), 1fr)); gap: calc(var(--u) * 0.7); }
+.hf { display: flex; align-items: center; gap: calc(var(--u) * 1); padding: calc(var(--u) * 0.8) calc(var(--u) * 1); background: var(--navy-d); border: calc(var(--u) * 0.3) solid #24488e; border-radius: calc(var(--u) * 1.2); opacity: 0.78; }
+.hf.ok { opacity: 1; border-color: var(--yellow); background: linear-gradient(#1d3f88, var(--navy-d)); }
+.hf > i { font-style: normal; font-size: calc(var(--u) * 2.2); width: calc(var(--u) * 3); text-align: center; filter: grayscale(1); }
+.hf.ok > i { filter: none; }
+.hf > div { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.hf b { font-weight: 700; }
+.hf span { color: #c4d4f4; font-size: 0.88em; }
+.hf > em { font-style: normal; color: var(--yellow); font-weight: 700; white-space: nowrap; font-size: 0.9em; }
+.hf-barre { position: relative; height: calc(var(--u) * 1.5); margin-top: calc(var(--u) * 0.4); background: #0a1838; border-radius: 99px; overflow: hidden; }
+.hf-barre > div { height: 100%; background: linear-gradient(90deg, #2f6fd6, #6fb0ff); }
+.hf-barre > span { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(var(--u) * 1.05); color: #fff; }
+.hf-bouton { font-size: calc(var(--u) * 1.4); }
 
   </style>
   <style>
@@ -1440,7 +1468,7 @@ window.PA = window.PA || {};
         // Boss rush et défi du jour (js/modes.js) : pas de prestige pendant le combat, pas de ruée.
         this.special_ = opts.special || null;
         if (this.special_) { this.killsPPCap = 0; this.rushLeft = this.rushTotal = 0; }
-        if (this.special_ === 'rush') { this.ai.champT = PA.Modes.RUSH.champ; this.ai.income *= PA.Modes.RUSH.escorte; }
+        if (this.special_ === 'rush') PA.Modes.preparerRush(this);
         if (this.special_ === 'defi') PA.Modes.preparerDefi(this);
         this.baseIncome = this.ai.income;
       } else {
@@ -1461,8 +1489,13 @@ window.PA = window.PA || {};
     }
 
     // Or par seconde, uniquement grâce à l'amélioration « Collecteurs ».
-    // Défi du jour : un petit revenu fixe en plus, sinon une fois la porte fermée (plus de kills) on pouvait rester sans or.
-    passiveGold() { return this.mods.passiveGold * C.economy.passiveGoldPerLevel[this.run.age] + (this.defi ? C.economy.minGoldAtLevelStart[this.run.age] * PA.Modes.DEFI_REVENU : 0); }
+    // Défi « survie » : un petit revenu fixe en plus, sinon une fois la porte fermée (plus de kills) on pouvait rester sans or.
+    // Boss rush : pareil, il n'y a presque rien à tuer entre deux champions.
+    passiveGold() {
+      const M = PA.Modes, mini = C.economy.minGoldAtLevelStart[this.run.age];
+      const extra = this.defi && this.defi.type !== 'course' ? mini * M.DEFI_REVENU : this.rushB ? mini * M.RUSH.revenu : 0;
+      return this.mods.passiveGold * C.economy.passiveGoldPerLevel[this.run.age] + extra;
+    }
     // Les unités coûtent ×3 à chaque âge : sans ce facteur, le prestige des kills exploserait.
     killValue() { return C.prestige.killValueByAge[this.enemyAge] ?? 1; }
 
@@ -1767,6 +1800,7 @@ window.PA = window.PA || {};
       const L = C.levels;
       const ai = this.ai;
       if (this.defi) return PA.Modes.majDefi(this, dt);   // défi du jour : son IA à lui (js/modes.js)
+      if (this.rushB) return PA.Modes.majRush(this, dt);  // boss rush : rien que les champions
       this.updateReinforcements(dt);
       ai.gold += ai.income * dt;
       if (this.time < 2) return;
@@ -2322,12 +2356,14 @@ window.PA = window.PA || {};
       // Nouveaux graphismes (js/art.js) : quand un élément y a sa version, elle remplace l'ancienne.
       const A = this.art = PA.Art && PA.Art.on ? PA.Art : null;
       const sceneAge = !b ? C.ages[0] : b.mode === 'assault' ? null : C.ages[b.enemyAge];
-      const backdrop = A && A.backdrops[sceneAge ? sceneAge.id : 'assaut'];
+      // Réveil du volcan (âge caché du Magma, js/magma.js) : on reste dans le décor jurassique, le volcan s'éveille.
+      const backdrop = A && A.backdrops[b && b.volcan ? 'jurassique' : sceneAge ? sceneAge.id : 'assaut'];
 
       ctx.save();
       if (b && b.shake > 0) ctx.translate((Math.random() - 0.5) * b.shake * 30, (Math.random() - 0.5) * b.shake * 20);
       if (backdrop) backdrop(ctx, t, dt, this);
       else this.background(ctx, pal, t, dt);
+      if (b && PA.Magma && (b.volcan || b.lave)) PA.Magma.decor(ctx, b, t);
 
       if (!b) {
         this.base(ctx, 1, C.ages[0].base, null);
@@ -9417,6 +9453,12 @@ window.PA = window.PA || {};
       { id: 'mammouth', name: 'Mammouth enragé', type: 'sweep', count: 1, k: 4, speed: 480, knock: 70, look: 'mammouth', desc: 'Il charge d’un bout à l’autre et repousse les ennemis.' },
       { id: 'feu-sacre', name: 'Feu sacré', type: 'haste', t: 8, desc: 'Tes unités frappent deux fois plus vite pendant 8 secondes.' },
     ],
+    // Âge caché (js/magma.js) : il prend la place de la Pierre dans les runs où on plonge dans le volcan.
+    magma: [
+      { id: 'souffle-volcan', name: 'Souffle du volcan', type: 'push', dist: 90, k: 1, chill: 0.5, t: 4, desc: 'Une bouffée de cendres brûlantes repousse les ennemis et les ralentit de moitié pendant 4 secondes.' },
+      { id: 'coulee', name: 'Coulée', type: 'zone', ou: 'ligne', t: 5, effet: 'burn', k: 0.9, look: 'flammes', desc: 'Une rivière de lave traverse le terrain : les ennemis brûlent pendant 5 secondes.' },
+      { id: 'carapace', name: 'Carapace d’obsidienne', type: 'guard', t: 5, k: 0.7, look: 'tortue', desc: 'Tes unités et ta base encaissent 70 % de dégâts en moins pendant 5 secondes.' },
+    ],
     antiquite: [
       { id: 'tortue', name: 'Formation tortue', type: 'guard', t: 5, k: 0.85, look: 'tortue', desc: 'Tes unités et ta base encaissent 85 % de dégâts en moins pendant 5 secondes.' },
       { id: 'feu-gregeois', name: 'Feu grégeois', type: 'zone', ou: 'ligne', t: 5, effet: 'burn', k: 0.9, look: 'flammes', desc: 'Tout le terrain s’embrase : les ennemis brûlent pendant 5 secondes.' },
@@ -9471,6 +9513,7 @@ window.PA = window.PA || {};
     'frappe-aerienne': 'Quatorze bombes larguées sur les ennemis.', poings: 'Douze poings géants tombent du ciel.',
     bidons: 'Douze bidons explosifs s’écrasent sur les ennemis.', 'frappe-orbitale': 'Douze rayons tirés depuis l’orbite.',
     abduction: 'Douze soucoupes frappent les ennemis de leurs rayons.',
+    'pluie-lave': 'Quatorze bombes de lave s’abattent sur la ligne ennemie.',
   };
   const listes = {};
 
@@ -9927,16 +9970,18 @@ window.PA = window.PA || {};
       { id: 'leviathan', name: 'Léviathan des sables', genre: 'colosse', w: 64, h: 112, cap: { type: 'fouisseur', but: 'base' }, desc: 'Il file sous terre et ressort sous ta base.' },
     ],
   };
-  const DEFS = C.ages.map(age => (TABLE[age.id] || []).map(o => {
+  // Les trois champions d'un âge (aussi pour l'âge caché du Magma, js/magma.js).
+  const construire = age => (TABLE[age.id] || []).map(o => {
     const b = age.champion, A = ARCH[o.genre];
     const d = Object.assign({}, b, o);
     d.id = 'ch-' + o.id; d.hp = Math.round(b.hp * A.hp); d.dmg = b.dmg * A.dmg;
     if (o.kind !== 'ranged') { d.kind = 'melee'; d.reach = o.reach || b.reach; }
     return d;
-  }));
+  });
+  const DEFS = C.ages.map(construire);
 
   const CH = PA.Champions = {
-    TABLE, DEFS, GENRES,
+    TABLE, DEFS, GENRES, construire,
     // Le tirage d'une run : un rang (0 à 2) par âge.
     tirer() { return DEFS.map(l => Math.floor(Math.random() * Math.max(1, l.length))); },
     // Le champion de cet âge pour cette run (au hasard s'il n'y a pas de tirage : vitrine, essais).
@@ -10004,7 +10049,7 @@ window.PA = window.PA || {};
       if (b.eu.length >= MAXE) return;
       const def = b.enemyAgeDef.units[u.def.cap.unite];
       for (let i = 0; i < u.def.cap.n; i++) invoquer(b, def, u.x + u.w / 2 + 16 + i * (def.w + 6));
-      cs.cri = 1; titre(b, u, '+3 raptors', '#ffd76a'); b.sortUnits();
+      cs.cri = 1; titre(b, u, u.def.cap.cri || '+3 raptors', '#ffd76a'); b.sortUnits();
     },
     rapt(b, u, dt, cs) {
       if (cs.proie) {
@@ -10225,6 +10270,16 @@ window.PA = window.PA || {};
       }
     },
     pille() {},
+    // Titan de magma : laisse des coulées qui brûlent tes troupes, et se soigne quand il marche dessus.
+    coulee(b, u, dt, cs, E) {
+      if (E.zones.some(z => z.lave && Math.abs(z.x - u.x) <= z.r)) {
+        u.hp = Math.min(u.maxHp, u.hp + u.maxHp * 0.015 * dt);
+        if (Math.random() < dt * 3) b.particles.push({ x: u.x + rand(-16, 16), y: GROUND - rand(10, u.h), vx: 0, vy: -60, life: 0.6, max: 0.6, color: '#8dff7a', size: 3 });
+      }
+      cs.t -= dt; if (cs.t > 0) return; cs.t = u.def.cap.every;
+      E.zones.push({ x: u.x - 10, r: 44, t: 8, max: 8, dps: u.dmg * 0.22, lave: true });
+    },
+    renait(b, u, dt, cs) { cs.fx = Math.max(0, cs.fx - dt); },
     flaques(b, u, dt, cs, E) {
       cs.t -= dt; if (cs.t > 0) return; cs.t = u.def.cap.every;
       E.zones.push({ x: u.x - 12, r: 46, t: 9, max: 9, dps: u.dmg * 0.25 });
@@ -10300,7 +10355,7 @@ window.PA = window.PA || {};
 
     for (const z of E.zones) {
       z.t -= dt;
-      for (const p of b.pu) if (vivant(p) && Math.abs(p.x - z.x) <= z.r + p.w / 2) { b.damageUnit(p, z.dps * dt, true, 'pouvoir'); p.poisonCh = 0.3; }
+      for (const p of b.pu) if (vivant(p) && Math.abs(p.x - z.x) <= z.r + p.w / 2) { b.damageUnit(p, z.dps * dt, true, 'pouvoir'); if (!z.lave) p.poisonCh = 0.3; }
     }
     E.zones = E.zones.filter(z => z.t > 0);
     for (const o of E.oeufs) {
@@ -10337,6 +10392,14 @@ window.PA = window.PA || {};
       case 'armure': if (src === 'tir' || src === 'zone') { dmg *= 0.25; if (Math.random() < 0.3) b.spark(u.x, GROUND - u.h * 0.6, '#c9d2e3', 2); } break;
       case 'blindage': if (src === 'tir' || src === 'melee') { dmg *= 0.25; if (Math.random() < 0.3) b.spark(u.x - u.w / 2, GROUND - u.h * 0.4, '#fff3c4', 2); } else if (src === 'brulure') dmg *= 0.5; break;
       case 'croissance': if (src !== 'brulure') cs.grow = Math.min(0.8, cs.grow + 0.012); break;
+      case 'renait':
+        // Phénix des cendres : le coup fatal le fait renaître une fois, à la moitié de ses PV.
+        if (!cs.mort && dmg >= u.hp) {
+          cs.mort = true; cs.fx = 1.2; dmg = 0; u.hp = u.maxHp * 0.5; u.burn = null; u.stun = 0.8;
+          titre(b, u, 'IL RENAÎT DE SES CENDRES !', '#ffb44a'); anneau(b, u.x, 100, '#ff8a3c'); b.shake = Math.max(b.shake, 0.25);
+          for (let i = 0; i < 24; i++) b.particles.push({ x: u.x + rand(-30, 30), y: GROUND - (u.alt || 0) - rand(0, 50), vx: rand(-120, 120), vy: rand(-200, -40), life: rand(0.5, 1), max: 1, color: i % 2 ? '#ff8a3c' : '#6a5a5a', size: rand(2, 5) });
+        }
+        break;
       case 'bouclier':
         if (cs.bou > 0) {
           const a = Math.min(cs.bou, dmg); cs.bou -= a; dmg -= a; cs.fx = 0.15;
@@ -10938,8 +11001,8 @@ window.PA = window.PA || {};
     c = ctx; T = performance.now() / 1000; ctx.save();
     for (const z of E.zones) {
       const a = Math.min(1, z.t, (z.max - z.t) * 3);
-      ctx.globalAlpha = 0.8 * a; ell(z.x, GROUND + 2, z.r, 7, '#8dff3a', 0, 2);
-      ctx.globalAlpha = a; for (let j = 0; j < 3; j++) { const k = (T * 1.3 + j / 3 + z.x * 0.01) % 1; rond(z.x - z.r * 0.5 + j * z.r * 0.5, GROUND - k * 16, 3 * (1 - k), '#c8ff6a', 1); }
+      ctx.globalAlpha = 0.8 * a; ell(z.x, GROUND + 2, z.r, 7, z.lave ? '#ff6a22' : '#8dff3a', 0, 2);
+      ctx.globalAlpha = a; for (let j = 0; j < 3; j++) { const k = (T * 1.3 + j / 3 + z.x * 0.01) % 1; rond(z.x - z.r * 0.5 + j * z.r * 0.5, GROUND - k * 16, 3 * (1 - k), z.lave ? '#ffd36a' : '#c8ff6a', 1); }
     }
     ctx.globalAlpha = 1;
     for (const o of E.oeufs) { const w = o.t < 1 ? Math.sin(T * 30) * 2 : 0; ell(o.x + w, GROUND - 10, 8, 11, '#e8d8f8'); if (o.t < 1) ligne(o.x - 4, GROUND - 14, o.x + 3, GROUND - 6, INK, 1.4); }
@@ -11123,7 +11186,7 @@ window.PA = window.PA || {};
         btn.dataset.idx = i;
         btn.title = locked ? `${u.name} — unité d’élite : à débloquer au camp pour ${fmt(PA.Meta.eliteCost(game.run.age))} ✦` : `${u.name} — ${u.desc} · ${fmt(u.hp)} PV (touche ${i + 1})`;
         // Le bouton montre l'unité elle-même (même dessin que sur le terrain) et son prix.
-        btn.innerHTML = `<img alt="${u.name}" src="${PA.Render.portrait('unit', u)}">${u.elite ? '<i class="star">★</i>' : ''}<span class="cost"></span>`;
+        btn.innerHTML = `<img alt="${u.name}" decoding="sync" src="${PA.Render.portrait('unit', u)}">${u.elite ? '<i class="star">★</i>' : ''}<span class="cost"></span>`;
         btn.onclick = this.act(b2 => b2.buyUnit(i));
         ub.appendChild(btn);
       });
@@ -11136,7 +11199,7 @@ window.PA = window.PA || {};
         btn.dataset.idx = i;
         const info = t.splash ? 'dégâts de zone' : t.interval < 0.4 ? 'tir rapide' : 'tir précis';
         btn.title = `${t.name} — ${info} · portée ${t.range} (touche ${'AZE'[i]})`;
-        btn.innerHTML = `<img alt="${t.name}" src="${PA.Render.portrait('turret', t)}"><span class="cost">${court(t.cost)}</span>`;
+        btn.innerHTML = `<img alt="${t.name}" decoding="sync" src="${PA.Render.portrait('turret', t)}"><span class="cost">${court(t.cost)}</span>`;
         btn.onclick = this.act(b2 => b2.buyTurret(i));
         tb.appendChild(btn);
       });
@@ -11158,8 +11221,14 @@ window.PA = window.PA || {};
       // Titre du niveau (avec une étiquette quand la campagne est en difficile)
       const hardTag = game.meta.difficulty === 'difficile' ? '<span class="hard">Difficile</span> · ' : '';
       if (run.mode === 'rush') {
-        this.el['hud-level'].textContent = `Boss rush · ${run.i + 1} / ${run.etapes.length}`;
-        this.el['hud-enemy'].innerHTML = `${hardTag}${b.champDef.name} · ${C.ages[b.enemyAge].name}`;
+        const r = b.rushB;
+        this.el['hud-level'].textContent = `Boss rush · ${C.ages[b.enemyAge].name} (${run.i + 1} / ${run.etapes.length})`;
+        this.el['hud-enemy'].innerHTML = r && r.actuel
+          ? `${hardTag}${r.actuel.name} · champion ${Math.min(r.total, r.tues + 1)} / ${r.total} · ${run.medailles.length} / ${PA.Modes.nbChampions()} vaincus`
+          : `${hardTag}Le premier champion arrive… · ${run.medailles.length} / ${PA.Modes.nbChampions()} vaincus`;
+      } else if (run.mode === 'defi' && b.phase === 'course') {
+        this.el['hud-level'].textContent = 'Défi du jour · course';
+        this.el['hud-enemy'].innerHTML = `${hardTag}<span class="good">Détruis sa base au plus vite</span> · ${run.defi.regle.nom}`;
       } else if (run.mode === 'defi') {
         this.el['hud-level'].textContent = 'Défi du jour';
         this.el['hud-enemy'].innerHTML = b.phase === 'survie'
@@ -11187,8 +11256,10 @@ window.PA = window.PA || {};
         // Frise des modes à part : un losange par boss du rush, ou les deux phases du défi.
         this.el['hud-track'].dataset.key = trackKey;
         this.el['hud-track'].innerHTML = run.mode === 'rush'
-          ? `<span class="t-grp"><span class="t-age cur">Rush</span>${run.etapes.map((e, i) => `<i class="pip boss ${i < run.i ? 'done' : i === run.i ? 'cur' : ''}" title="${PA.Champions.DEFS[e.age][e.k].name}"></i>`).join('')}</span>`
-          : `<span class="t-grp"><span class="t-age ${b.phase === 'survie' ? 'cur' : ''}">Survie</span><span class="t-age ${b.phase === 'survie' ? '' : 'cur'}">Assaut</span></span>`;
+          ? `<span class="t-grp"><span class="t-age cur">Rush</span>${run.etapes.map((e, i) => `<i class="pip boss ${i < run.i ? 'done' : i === run.i ? 'cur' : ''}" title="${C.ages[e.age].name}"></i>`).join('')}</span>`
+          : b.phase === 'course'
+            ? `<span class="t-grp"><span class="t-age cur">Course</span></span>`
+            : `<span class="t-grp"><span class="t-age ${b.phase === 'survie' ? 'cur' : ''}">Survie</span><span class="t-age ${b.phase === 'survie' ? '' : 'cur'}">Assaut</span></span>`;
       } else if (!run.mode && this.el['hud-track'].dataset.key !== trackKey) {
         this.el['hud-track'].dataset.key = trackKey;
         const per = C.levels.perAge;
@@ -11241,6 +11312,10 @@ window.PA = window.PA || {};
         this.el['hud-xp-text'].textContent = 'ÂGE MAX';
       }
       this.el['btn-evolve'].disabled = !b.canEvolve();
+      // Âge caché du Magma (js/magma.js) : quand la lave a tout recouvert, Évoluer devient Plonger.
+      const plonge = !!(b.plongeePossible && b.plongeePossible()), labelEvo = plonge ? 'Plonger dans le magma' : 'Évoluer';
+      this.el['btn-evolve'].classList.toggle('magma', plonge);
+      if (this.el['btn-evolve'].textContent !== labelEvo) this.el['btn-evolve'].textContent = labelEvo;
       this.el['btn-evolve'].style.visibility = hasNext ? '' : 'hidden';   // garde sa place : le bandeau ne bouge pas
 
       // Boutons d'achat
@@ -11266,19 +11341,20 @@ window.PA = window.PA || {};
       });
 
       // File d'entraînement : une pastille par unité en attente, la première se remplit de bas en haut.
+      // Les pastilles restent en place : on ne change que l'image qui doit changer. Reconstruites à chaque
+      // sortie d'unité, leurs images se rechargeaient et, sur téléphone, toute la file clignotait.
       const q = this.el.queue;
-      const qKey = b.queue.map(item => item.def.id).join(',');
-      if (q.dataset.key !== qKey) {
-        q.dataset.key = qKey;
-        let qh = '';
-        for (let i = 0; i < C.economy.queueSize; i++) {
-          const item = b.queue[i];
-          qh += item ? `<div class="q-slot on"><div class="fill"></div><img alt="" src="${PA.Render.portrait('unit', item.def)}"></div>` : '<div class="q-slot"></div>';
-        }
-        q.innerHTML = qh;
+      if (q.children.length !== C.economy.queueSize) {
+        q.innerHTML = '<div class="q-slot"><div class="fill"></div><img alt="" decoding="sync" hidden></div>'.repeat(C.economy.queueSize);
       }
-      const qFill = q.querySelector('.fill');
-      if (qFill && b.queue[0]) qFill.style.height = `${(1 - b.queue[0].t / b.queue[0].total) * 100}%`;
+      [...q.children].forEach((slot, i) => {
+        const item = b.queue[i], img = slot.lastChild, fill = slot.firstChild;
+        const src = item ? PA.Render.portrait('unit', item.def) : '';
+        slot.classList.toggle('on', !!item);
+        if (img.dataset.src !== src) { img.dataset.src = src; if (src) img.src = src; }
+        img.hidden = !item;
+        fill.style.height = i === 0 && item ? `${(1 - item.t / item.total) * 100}%` : '0';
+      });
 
       // Emplacements de tourelles : une case par emplacement, puis « + » pour en acheter un.
       const slotsEl = this.el.slots;
@@ -11290,14 +11366,18 @@ window.PA = window.PA || {};
         const refund = court(Math.round(def.cost * C.economy.turretSellRefund));
         sh += armed === i
           ? `<button class="slot-chip armed" data-sell="${i}" title="Appuie encore pour vendre"><span>Vendre<b>+${refund}</b></span></button>`
-          : `<button class="slot-chip full" data-sell="${i}" title="${def.name} : appuie pour vendre (+${refund} or)"><img alt="${def.name}" src="${PA.Render.portrait('turret', def)}"><i>×</i></button>`;
+          : `<button class="slot-chip full" data-sell="${i}" title="${def.name} : appuie pour vendre (+${refund} or)"><img alt="${def.name}" decoding="sync" src="${PA.Render.portrait('turret', def)}"><i>×</i></button>`;
       });
       const sc = b.slotCost();
-      if (sc != null) sh += `<button class="slot-chip add${run.gold < sc ? ' cant' : ''}" data-slot="1" title="Acheter un emplacement de tourelle"><b>+</b><span>${court(sc)}</span></button>`;
+      // « cant » se règle à part : sinon chaque passage de l'or au-dessus ou en dessous du prix reconstruisait
+      // toutes les cases, et les images des tourelles posées clignotaient.
+      if (sc != null) sh += `<button class="slot-chip add" data-slot="1" title="Acheter un emplacement de tourelle"><b>+</b><span>${court(sc)}</span></button>`;
       if (slotsEl.dataset.html !== sh) {
         slotsEl.innerHTML = sh;
         slotsEl.dataset.html = sh;
       }
+      const addBtn = slotsEl.querySelector('.add');
+      if (addBtn) addBtn.classList.toggle('cant', run.gold < sc);
 
       // Pouvoir spécial : le bouton se remplit de bas en haut pendant la recharge.
       const sp = b.special;                               // le pouvoir équipé pour cet âge (js/pouvoirs.js)
@@ -11449,6 +11529,7 @@ window.PA = window.PA || {};
         elites: `<p class="camp-hint">La 4e unité de chaque âge : dégâts de zone, réservée à ton armée.</p><div class="upgrades">${elites}</div>`,
         rush: PA.Modes && tab === 'rush' ? this.panneauRush(meta) : '',
         defi: PA.Modes && tab === 'defi' ? this.panneauDefi(meta) : '',
+        hf: PA.HautsFaits && tab === 'hf' ? PA.HautsFaits.panneau(meta) : '',   // hauts faits (js/hauts-faits.js)
         pouvoirs: `<p class="camp-hint">Un pouvoir équipé par âge. Celui de contrôle est offert ; les trois autres s’achètent une fois l’âge débloqué.</p><div class="upgrades pouvoirs">${pouvoirs}</div>`,
       };
       const tabs = [['ups', '⚒', 'Améliorations'], ['ages', '⏳', 'Âges'], ['play', '⚔', 'Bataille'], ['elites', '★', 'Élites'], ['pouvoirs', '✦', 'Pouvoirs']]
@@ -11505,7 +11586,7 @@ window.PA = window.PA || {};
         <div class="camp-top">
           <div class="cur" title="Points de prestige"><i>✦</i>${fmt(meta.balance)}</div>
           <div class="seg" title="Chaque difficulté a sa propre progression">${Object.keys(C.difficulties).map(id => `<button data-action="diff" data-arg="${id}" class="d-${id}${id === meta.difficulty ? ' on' : ''}">${C.difficulties[id].name}</button>`).join('')}</div>
-          <div class="side">${meta.totalEarned > meta.balance ? `<span class="muted">Total gagné : ${fmt(meta.totalEarned)} ✦</span>` : ''}<button data-action="musique" class="son${PA.Music.on ? '' : ' off'}" title="Musique : oui / non">♪</button><button data-action="bruitages" class="son${PA.Music.fx ? '' : ' off'}" title="Effets sonores : oui / non">🔊</button><button data-action="tab" data-arg="${tab === 'aide' ? 'play' : 'aide'}" title="Aide et réglages">${tab === 'aide' ? '✕' : '?'}</button></div>
+          <div class="side">${meta.totalEarned > meta.balance ? `<span class="muted">Total gagné : ${fmt(meta.totalEarned)} ✦</span>` : ''}${PA.HautsFaits ? `<button data-action="tab" data-arg="${tab === 'hf' ? 'play' : 'hf'}" class="hf-bouton" title="Hauts faits">${tab === 'hf' ? '✕' : `🏆 ${PA.HautsFaits.nb()}`}</button>` : ''}<button data-action="musique" class="son${PA.Music.on ? '' : ' off'}" title="Musique : oui / non">♪</button><button data-action="bruitages" class="son${PA.Music.fx ? '' : ' off'}" title="Effets sonores : oui / non">🔊</button><button data-action="tab" data-arg="${tab === 'aide' ? 'play' : 'aide'}" title="Aide et réglages">${tab === 'aide' ? '✕' : '?'}</button></div>
         </div>
         <div class="camp-body ${tab === 'play' ? '' : 'list'}">${tab === 'aide' ? `<div>${aide}</div>` : bodies[tab]}</div>
         <nav class="tabs">${tabs}</nav>
@@ -11575,7 +11656,7 @@ window.PA = window.PA || {};
     panneauRush(meta) {
       const M = PA.Modes, P = C.prestige;
       const ouvert = M.rushOuvert(meta), etapes = M.rushEtapes(meta);
-      const r = meta.rush || { best: 0, temps: null, complets: 0 };
+      const r = meta.rush && meta.rush.v === 2 ? meta.rush : { best: 0, temps: null, complets: 0 };
       const ICONES = [0, 1, 2, 3].map(med);
       const galerie = C.ages.map((age, a) => {
         const cartes = (PA.Champions.DEFS[a] || []).map(d => {
@@ -11585,15 +11666,14 @@ window.PA = window.PA || {};
         }).join('');
         return `<div class="champ-age"><h4>${P.ageNames[a]}</h4><div class="champ-ligne">${cartes}</div></div>`;
       }).join('');
-      const record = r.best ? `Record : <b>${r.best} boss</b> d’affilée${r.temps != null ? ` en ${fmtTime(r.temps)}` : ''}${r.complets ? ` · ${r.complets} rush${r.complets > 1 ? 's' : ''} complet${r.complets > 1 ? 's' : ''}` : ''}` : 'Pas encore de record.';
+      const nb = M.nbChampions();
+      const record = r.best ? `Record : <b>${r.best} / ${nb} champions</b> d’affilée${r.temps != null ? ` en ${fmtTime(r.temps)}` : ''}${r.complets ? ` · ${r.complets} rush${r.complets > 1 ? 's' : ''} complet${r.complets > 1 ? 's' : ''}` : ''}` : 'Pas encore de record.';
       const bouton = !ouvert
         ? '<button class="primary" disabled>🔒 Atteins un premier assaut final</button>'
-        : etapes.length
-          ? `<button class="primary" data-action="lancerRush">Lancer le rush (${etapes.length} boss)</button>`
-          : '<button class="primary" disabled>Vaincs d’abord un champion en partie</button>';
+        : `<button class="primary" data-action="lancerRush">Lancer le rush (${etapes.length} âges, ${nb} champions)</button>`;
       return `<div class="mode-panneau">
         <h2>♛ Boss rush</h2>
-        <p class="camp-hint">Un champion par âge, à la suite, parmi ceux que tu as déjà vaincus. Ton armée a toujours l’âge du champion. Entre deux boss : une récompense au choix et +25 % de PV pour ta base. Pas de prestige ici, seulement des records et des médailles.</p>
+        <p class="camp-hint">Rien que des boss : les ${nb} champions, âge par âge, les trois de chaque âge l’un après l’autre. Pas d’unités ordinaires en face. Ton armée a l’âge des champions et reçoit un peu d’or chaque seconde. Entre deux âges : une récompense au choix et +25 % de PV pour ta base. Pas de prestige ici, seulement des records et des médailles.</p>
         <p class="mode-record">${record}</p>
         <div class="actions">${bouton}</div>
         <h3>Galerie des champions <small class="legende">${med(1)} vaincu en partie ${med(2)} vaincu au rush ${med(3)} au rush, base au-dessus de 50 %</small></h3>
@@ -11604,38 +11684,56 @@ window.PA = window.PA || {};
     panneauDefi(meta) {
       const M = PA.Modes, d = M.defi(), s = M.etatDefi(meta);
       const ouvert = M.defiOuvert(meta);
-      const regle = d.regle.id === 'solo' ? `${d.regle.desc} Aujourd’hui : <b>${C.ages[d.age].units[d.solo].name}</b>.` : d.regle.desc;
+      const regle = d.regle.id === 'solo'
+        ? `${d.regle.desc} Aujourd’hui : <b>${d.type === 'course' ? `ton unité n° ${d.solo + 1} (${C.ages[0].units[d.solo].name} au Jurassique)` : C.ages[d.age].units[d.solo].name}</b>.`
+        : d.regle.desc;
       const gain = s.recompense === s.jour ? '<span class="muted">Récompense du jour déjà touchée</span>' : `<b style="color:var(--pp)">+${fmt(M.recompenseDefi(meta))} ✦</b> au premier succès du jour`;
       const best = s.meilleur ? `Ton meilleur aujourd’hui : <b>${fmtTime(s.meilleur.t)}</b>, base à ${s.meilleur.base} %` : 'Pas encore réussi aujourd’hui.';
       return `<div class="mode-panneau">
         <h2>☀ Défi du jour</h2>
         <p class="mode-nom">${d.nom}</p>
         <p class="camp-hint">Le même défi pour tout le monde aujourd’hui. Tes améliorations et tes élites ne comptent pas : tout le monde part à égalité.</p>
-        <div class="defi-grille">
+        ${d.type === 'course' ? this.grilleCourse(d, regle) : `<div class="defi-grille">
           <div><span class="muted">Ton armée</span><b>${C.ages[d.age].name}</b></div>
           <div><span class="muted">L’ennemi</span><b>${C.ages[d.ennemi].name}</b><small>sa base t’attend avec une tourelle</small></div>
           <div><span class="muted">Les vagues</span><b>${d.melange.nom}</b><small>${d.melange.desc}</small></div>
           <div><span class="muted">La règle</span><b>${d.regle.nom}</b><small>${regle}</small></div>
         </div>
-        <ol class="rules defi-etapes"><li><b>Survis ${Math.floor(M.SURVIE / 60)} minutes</b> : la base ennemie est intouchable et envoie des unités de plusieurs âges.</li><li><b>La porte se ferme</b> : plus de renforts. Détruis sa base le plus vite possible.</li></ol>
+        <ol class="rules defi-etapes"><li><b>Survis ${Math.floor(M.SURVIE / 60)} minutes</b> : la base ennemie est intouchable et envoie des unités de plusieurs âges.</li><li><b>La porte se ferme</b> : plus de renforts. Détruis sa base le plus vite possible.</li></ol>`}
         <p class="mode-record">${best} · Essais : ${s.essais} · Série : <b>${s.serie} jour${s.serie > 1 ? 's' : ''}</b><br>${gain}</p>
         <div class="actions">${ouvert ? '<button class="primary" data-action="lancerDefi">Relever le défi</button>' : '<button class="primary" disabled>🔒 Termine d’abord une partie</button>'}</div>
       </div>`;
     },
 
+    // Défi « course » : ce qui t'attend en face.
+    grilleCourse(d, regle) {
+      const unites = d.unites.map(o => `${C.ages[o.age].units[o.idx].name} <span class="muted">(${C.ages[o.age].name})</span>`).join('<br>');
+      const ch = PA.Champions.DEFS[d.champion.age][d.champion.k], t = C.ages[d.tourelle.age].turrets[d.tourelle.idx];
+      return `<div class="defi-grille">
+          <div><span class="muted">Ton armée</span><b>${C.ages[0].name}</b><small>comme une vraie partie : tu évolues avec l’XP</small></div>
+          <div><span class="muted">L’ennemi</span><b>${C.ages[d.ennemi].name}</b><small>sa base est gardée par : ${t.name} (${C.ages[d.tourelle.age].name})</small></div>
+          <div><span class="muted">Ses unités</span><small>${unites}</small></div>
+          <div><span class="muted">Son champion</span><b>${ch.name}</b><small>${C.ages[d.champion.age].name} · revient régulièrement · ${ch.desc}</small></div>
+          <div><span class="muted">La règle</span><b>${d.regle.nom}</b><small>${regle}</small></div>
+        </div>
+        <ol class="rules defi-etapes"><li><b>Pars de zéro</b> : tue, gagne de l’XP et évolue pour rattraper son âge. Ses unités plus récentes arrivent au fil du temps.</li><li><b>Détruis sa base</b> le plus vite possible : c’est ton temps qui compte.</li></ol>`;
+    },
+
     showRushEtape(run, b, choix) {
-      const game = this.game, der = run.medailles[run.medailles.length - 1];
-      const suiv = run.etapes[run.i], ch = PA.Champions.DEFS[suiv.age][suiv.k];
+      const prec = run.etapes[run.i - 1], suiv = run.etapes[run.i];
+      const tombes = run.medailles.slice(-prec.ks.length);
+      const noms = suiv.ks.map(k => PA.Champions.DEFS[suiv.age][k].name).join(', ');
       const cards = choix.map(id => {
         const r = C.relics.find(x => x.id === id), tx = PA.relicText(r, run.relics);
         const style = r.element ? ` style="border-color:${C.elements[r.element].color}"` : '';
         return `<button class="card${r.element ? ' elem' : ''}"${style} data-action="relic" data-arg="${r.id}"><span class="icon">${r.icon}</span><span class="name">${tx.name}</span><span class="desc">${tx.desc}</span></button>`;
       }).join('');
       this.overlay(`
-        <h2>${der.ch.name} est vaincu !</h2>
-        <p class="sub">Temps : ${fmtTime(der.t)} · ${med(der.m)} ${['', '', 'médaille d’argent', 'médaille d’or'][der.m]}${der.neuve ? ' (nouvelle !)' : ''} · Choisis une récompense :</p>
+        <h2>${C.ages[prec.age].name} : tous ses champions sont tombés !</h2>
+        <p class="sub">${tombes.map(x => `${x.ch.name} ${med(x.m)}${x.neuve ? ' <span class="good">nouvelle</span>' : ''}`).join(' · ')}</p>
+        <p class="sub">Temps : ${fmtTime(b.time)} · Choisis une récompense :</p>
         <div class="cards">${cards}</div>
-        <div class="next-box"><b>Prochain boss (${run.i + 1} / ${run.etapes.length}) : ${ch.name}</b> — ${C.ages[suiv.age].name} · ${ch.desc}</div>
+        <div class="next-box"><b>Prochain âge (${run.i + 1} / ${run.etapes.length}) : ${C.ages[suiv.age].name}</b> — ${noms}</div>
         <p class="muted">Ta base récupère 25 % de ses PV et ton or est remplacé par une somme fixe.</p>
       `, { relic: id => PA.Modes.choisirRush(id) });
     },
@@ -11646,16 +11744,16 @@ window.PA = window.PA || {};
       const titre = o.complet ? 'Rush terminé : tous les boss sont tombés !' : o.result === 'abandon' ? 'Rush abandonné' : 'Ta base est tombée';
       this.overlay(`
         <h2>${titre}</h2>
-        <p class="sub">${run.medailles.length} / ${run.etapes.length} boss vaincus · temps total ${fmtTime(run.temps)}${o.record ? ' · <b class="good">nouveau record !</b>' : ''}</p>
-        ${lignes ? `<table class="breakdown">${lignes}</table>` : ''}
-        <p class="muted">Record : ${o.rec.best} boss d’affilée${o.rec.temps != null ? ` en ${fmtTime(o.rec.temps)}` : ''}.</p>
+        <p class="sub">${run.medailles.length} / ${PA.Modes.nbChampions()} champions vaincus · temps total ${fmtTime(run.temps)}${o.record ? ' · <b class="good">nouveau record !</b>' : ''}</p>
+        ${lignes ? `<div class="rush-liste"><table class="breakdown">${lignes}</table></div>` : ''}
+        <p class="muted">Record : ${o.rec.best} champions d’affilée${o.rec.temps != null ? ` en ${fmtTime(o.rec.temps)}` : ''}.</p>
         <div class="actions"><button data-action="galerie">Voir la galerie</button><button class="primary" data-action="camp">Retour au camp</button></div>
       `, { camp: () => { this.campTab = 'play'; game.showCamp(); }, galerie: () => { this.campTab = 'rush'; game.showCamp(); } });
     },
 
     showDefiFin(o) {
       const game = this.game, s = o.etat;
-      const titre = o.result === 'victory' ? 'Défi réussi !' : o.result === 'abandon' ? 'Défi abandonné' : o.phase === 'survie' ? 'Ta base est tombée pendant la survie' : 'Ta base est tombée pendant l’assaut';
+      const titre = o.result === 'victory' ? 'Défi réussi !' : o.result === 'abandon' ? 'Défi abandonné' : o.phase === 'survie' ? 'Ta base est tombée pendant la survie' : o.phase === 'course' ? 'Ta base est tombée' : 'Ta base est tombée pendant l’assaut';
       this.overlay(`
         <h2>${titre}</h2>
         <p class="sub">${o.defi.nom}</p>

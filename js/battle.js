@@ -138,7 +138,7 @@ window.PA = window.PA || {};
         // Boss rush et défi du jour (js/modes.js) : pas de prestige pendant le combat, pas de ruée.
         this.special_ = opts.special || null;
         if (this.special_) { this.killsPPCap = 0; this.rushLeft = this.rushTotal = 0; }
-        if (this.special_ === 'rush') { this.ai.champT = PA.Modes.RUSH.champ; this.ai.income *= PA.Modes.RUSH.escorte; }
+        if (this.special_ === 'rush') PA.Modes.preparerRush(this);
         if (this.special_ === 'defi') PA.Modes.preparerDefi(this);
         this.baseIncome = this.ai.income;
       } else {
@@ -159,8 +159,13 @@ window.PA = window.PA || {};
     }
 
     // Or par seconde, uniquement grâce à l'amélioration « Collecteurs ».
-    // Défi du jour : un petit revenu fixe en plus, sinon une fois la porte fermée (plus de kills) on pouvait rester sans or.
-    passiveGold() { return this.mods.passiveGold * C.economy.passiveGoldPerLevel[this.run.age] + (this.defi ? C.economy.minGoldAtLevelStart[this.run.age] * PA.Modes.DEFI_REVENU : 0); }
+    // Défi « survie » : un petit revenu fixe en plus, sinon une fois la porte fermée (plus de kills) on pouvait rester sans or.
+    // Boss rush : pareil, il n'y a presque rien à tuer entre deux champions.
+    passiveGold() {
+      const M = PA.Modes, mini = C.economy.minGoldAtLevelStart[this.run.age];
+      const extra = this.defi && this.defi.type !== 'course' ? mini * M.DEFI_REVENU : this.rushB ? mini * M.RUSH.revenu : 0;
+      return this.mods.passiveGold * C.economy.passiveGoldPerLevel[this.run.age] + extra;
+    }
     // Les unités coûtent ×3 à chaque âge : sans ce facteur, le prestige des kills exploserait.
     killValue() { return C.prestige.killValueByAge[this.enemyAge] ?? 1; }
 
@@ -465,6 +470,7 @@ window.PA = window.PA || {};
       const L = C.levels;
       const ai = this.ai;
       if (this.defi) return PA.Modes.majDefi(this, dt);   // défi du jour : son IA à lui (js/modes.js)
+      if (this.rushB) return PA.Modes.majRush(this, dt);  // boss rush : rien que les champions
       this.updateReinforcements(dt);
       ai.gold += ai.income * dt;
       if (this.time < 2) return;
