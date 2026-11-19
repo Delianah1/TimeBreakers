@@ -125,7 +125,8 @@ window.PA = window.PA || {};
         btn.dataset.idx = i;
         btn.title = locked ? `${u.name} — unité d’élite : à débloquer au camp pour ${fmt(PA.Meta.eliteCost(game.run.age))} ✦` : `${u.name} — ${u.desc} · ${fmt(u.hp)} PV (touche ${i + 1})`;
         // Le bouton montre l'unité elle-même (même dessin que sur le terrain) et son prix.
-        btn.innerHTML = `<img alt="${u.name}" decoding="sync" src="${PA.Render.portrait('unit', u)}">${u.elite ? '<i class="star">★</i>' : ''}<span class="cost"></span>`;
+        btn.innerHTML = `<canvas width="128" height="128"></canvas>${u.elite ? '<i class="star">★</i>' : ''}<span class="cost"></span>`;
+        this.peindre(btn.firstChild, PA.Render.portrait('unit', u));
         btn.onclick = this.act(b2 => b2.buyUnit(i));
         ub.appendChild(btn);
       });
@@ -138,10 +139,29 @@ window.PA = window.PA || {};
         btn.dataset.idx = i;
         const info = t.splash ? 'dégâts de zone' : t.interval < 0.4 ? 'tir rapide' : 'tir précis';
         btn.title = `${t.name} — ${info} · portée ${t.range} (touche ${'AZE'[i]})`;
-        btn.innerHTML = `<img alt="${t.name}" decoding="sync" src="${PA.Render.portrait('turret', t)}"><span class="cost">${court(t.cost)}</span>`;
+        btn.innerHTML = `<canvas width="128" height="128"></canvas><span class="cost">${court(t.cost)}</span>`;
+        this.peindre(btn.firstChild, PA.Render.portrait('turret', t));
         btn.onclick = this.act(b2 => b2.buyTurret(i));
         tb.appendChild(btn);
       });
+    },
+
+    // Image décodée une seule fois, gardée en mémoire (vignettes des unités et des tourelles).
+    vignette(src) {
+      this.vignettes = this.vignettes || {};
+      let im = this.vignettes[src];
+      if (!im) { im = this.vignettes[src] = new Image(); im.src = src; }
+      return im;
+    },
+    // Dessine une vignette sur un canevas (vide si src = ''). Rien n'est rechargé : pas de clignotement.
+    peindre(cv, src) {
+      cv.dataset.src = src;
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      if (!src) return;
+      const im = this.vignette(src);
+      const go = () => { if (cv.dataset.src === src) { ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(im, 0, 0, cv.width, cv.height); } };
+      if (im.complete && im.naturalWidth) go(); else im.addEventListener('load', go, { once: true });
     },
 
     update(force) {
@@ -282,16 +302,18 @@ window.PA = window.PA || {};
       // File d'entraînement : une pastille par unité en attente, la première se remplit de bas en haut.
       // Les pastilles restent en place : on ne change que l'image qui doit changer. Reconstruites à chaque
       // sortie d'unité, leurs images se rechargeaient et, sur téléphone, toute la file clignotait.
+      // Encore mieux : pas d'<img> du tout. Quand une unité sort, toutes les autres avancent d'une case ;
+      // changer le src de chaque image la faisait redécoder, et sur téléphone ça clignotait quand même.
+      // Chaque case est un petit canevas où l'on redessine une image déjà décodée (this.vignette).
       const q = this.el.queue;
       if (q.children.length !== C.economy.queueSize) {
-        q.innerHTML = '<div class="q-slot"><div class="fill"></div><img alt="" decoding="sync" hidden></div>'.repeat(C.economy.queueSize);
+        q.innerHTML = '<div class="q-slot"><div class="fill"></div><canvas width="64" height="64"></canvas></div>'.repeat(C.economy.queueSize);
       }
       [...q.children].forEach((slot, i) => {
-        const item = b.queue[i], img = slot.lastChild, fill = slot.firstChild;
+        const item = b.queue[i], cv = slot.lastChild, fill = slot.firstChild;
         const src = item ? PA.Render.portrait('unit', item.def) : '';
         slot.classList.toggle('on', !!item);
-        if (img.dataset.src !== src) { img.dataset.src = src; if (src) img.src = src; }
-        img.hidden = !item;
+        if (cv.dataset.src !== src) this.peindre(cv, src);
         fill.style.height = i === 0 && item ? `${(1 - item.t / item.total) * 100}%` : '0';
       });
 
@@ -305,7 +327,7 @@ window.PA = window.PA || {};
         const refund = court(Math.round(def.cost * C.economy.turretSellRefund));
         sh += armed === i
           ? `<button class="slot-chip armed" data-sell="${i}" title="Appuie encore pour vendre"><span>Vendre<b>+${refund}</b></span></button>`
-          : `<button class="slot-chip full" data-sell="${i}" title="${def.name} : appuie pour vendre (+${refund} or)"><img alt="${def.name}" decoding="sync" src="${PA.Render.portrait('turret', def)}"><i>×</i></button>`;
+          : `<button class="slot-chip full" data-sell="${i}" title="${def.name} : appuie pour vendre (+${refund} or)"><canvas width="96" height="96" data-v="${PA.Render.portrait('turret', def)}"></canvas><i>×</i></button>`;
       });
       const sc = b.slotCost();
       // « cant » se règle à part : sinon chaque passage de l'or au-dessus ou en dessous du prix reconstruisait
@@ -314,6 +336,7 @@ window.PA = window.PA || {};
       if (slotsEl.dataset.html !== sh) {
         slotsEl.innerHTML = sh;
         slotsEl.dataset.html = sh;
+        slotsEl.querySelectorAll('canvas[data-v]').forEach(cv => this.peindre(cv, cv.dataset.v));
       }
       const addBtn = slotsEl.querySelector('.add');
       if (addBtn) addBtn.classList.toggle('cant', run.gold < sc);

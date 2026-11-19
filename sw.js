@@ -4,7 +4,7 @@
    version (et on la range dans le cache) ; hors ligne on sert le cache.
    Changer VERSION vide l'ancien cache.
    ========================================================================= */
-const VERSION = 'timebreakers-v31';
+const VERSION = 'timebreakers-v32';
 const FICHIERS = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'icones/icone-192.png', 'icones/icone-512.png', 'icones/icone-180.png', 'icones/icone-maskable-512.png',
