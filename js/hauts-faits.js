@@ -259,8 +259,8 @@ window.PA = window.PA || {};
       setTimeout(() => { el.remove(); this.suivant(); }, 4100);
     },
 
-    // En partie : une missive scellée arrive en volant, le sceau saute, le parchemin se déroule, des feux d'artifice éclatent,
-    // puis elle se renroule et repart.
+    // En partie : une missive scellée arrive en volant au son d'une corne, le sceau saute, le parchemin se déroule
+    // vers la droite (le rouleau de gauche reste en place), puis il se renroule et la missive repart.
     effetPartie(o, st, b) {
       // le bandeau « NIVEAU n » est encore affiché : on attend qu'il soit parti pour ne pas le recouvrir
       const ov = document.getElementById('overlay');   // fenêtre de fin de niveau ouverte : on attend aussi
@@ -274,23 +274,13 @@ window.PA = window.PA || {};
       const h = o.h, ico = ICONES[h.t] || '🏆', gain = o.gain ? `<em>+${o.gain} ✦</em>` : '';
       const titre = `Haut fait${h.secret ? ' secret' : ''} !`;
       const el = document.createElement('div');
-      const W = PA.CONFIG.world.width;
-      const rand = (a, c) => a + Math.random() * (c - a);
-      const COULEURS = ['#ffd23f', '#6fb0ff', '#ff6a5a', '#8dff7a', '#d58bff', '#ffffff'];
       const duree = 4300;
       el.className = 'hf-fx hf-missive';
       el.innerHTML = `<div class="rouleau"><div class="papier"><i>${ico}</i><div><small>${titre}</small><b>${h.nom}</b><span>${h.desc}</span></div>${gain}</div>`
         + `<div class="bout g"></div><div class="bout d"></div><div class="sceau">✦</div></div>`;
       st.appendChild(el);
-      if (PA.Sons && PA.Sons.evolution && PA.Music && PA.Music.fx) { try { PA.Sons.evolution(0); } catch (e) { /* ignore */ } }
+      if (PA.Sons && PA.Sons.corne) { try { PA.Sons.corne(); } catch (e) { /* ignore */ } }
       requestAnimationFrame(() => el.classList.add('on'));
-      // feux d'artifice une fois la missive ouverte (« fete » : affichés quel que soit le style d'effets)
-      for (let k = 0; k < 6; k++) setTimeout(() => {
-        if (!PA.Game || PA.Game.battle !== b) return;
-        const x = rand(160, W - 160), y = rand(230, 340), col = COULEURS[k % COULEURS.length];
-        b.particles.push({ ring: true, fete: true, x, y, r: 6, maxR: 90, life: 0.5, max: 0.5, color: col });
-        for (let i = 0; i < 40; i++) { const a = i / 40 * Math.PI * 2, v = rand(160, 300); b.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rand(0.8, 1.3), max: 1.3, color: i % 3 ? col : '#fff', size: rand(3, 5), fete: true }); }
-      }, 1000 + k * 380);
       setTimeout(() => el.classList.add('fin'), duree - 750);
       setTimeout(() => { el.remove(); this.suivant(); }, duree);
     },

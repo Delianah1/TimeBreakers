@@ -331,7 +331,7 @@ details.dev summary { cursor: pointer; color: var(--muted); }
 .hf-bandeau b { font-family: var(--f-title); font-size: 1.35em; font-weight: 400; }
 .hf-bandeau span { color: #d6e4ff; }
 .hf-bandeau em { font-style: normal; color: var(--yellow); font-weight: 700; white-space: nowrap; }
-/* hauts faits en pleine partie : une missive se déroule au-dessus du terrain, avec des feux d'artifice */
+/* hauts faits en pleine partie : une missive se déroule au-dessus du terrain */
 .hf-fx { position: absolute; z-index: 6; pointer-events: none; color: #fff; text-align: center; }
 .hf-fx small { display: block; color: var(--yellow); text-transform: uppercase; letter-spacing: 0.1em; font-family: var(--f-title); font-size: 1.3cqw; -webkit-text-stroke: 0.3cqw var(--ink); paint-order: stroke fill; }
 .hf-fx b { display: block; font-family: var(--f-title); font-weight: 400; font-size: 3.2cqw; line-height: 1.05; -webkit-text-stroke: 0.55cqw var(--ink); paint-order: stroke fill; }
@@ -346,9 +346,9 @@ details.dev summary { cursor: pointer; color: var(--muted); }
 .hf-missive.fin .rouleau { animation: hf-repart 0.4s 0.3s ease-in both; }
 .hf-missive .papier { display: flex; align-items: center; gap: 1.4cqw; text-align: left; padding: 1cqw 4cqw; color: #4a3200;
   background: linear-gradient(#e9cf96, #fff7dc 18%, #ffe9b8 70%, #e2bd76); border-top: 0.3cqw solid #a8741f; border-bottom: 0.3cqw solid #a8741f; box-shadow: 0 0.6cqw 0 rgba(0,0,0,0.3);
-  clip-path: inset(0 48% 0 48%); }
-.hf-missive.on .papier { animation: hf-deroule 0.6s 0.5s cubic-bezier(.3,1,.4,1) both; }
-.hf-missive.fin .papier { animation: hf-enroule 0.32s ease-in both; }
+  clip-path: inset(0 96% 0 0); }
+.hf-missive.on .papier { animation: hf-deroule 0.75s 0.5s cubic-bezier(.3,1,.4,1) both; }
+.hf-missive.fin .papier { animation: hf-enroule 0.4s ease-in both; }
 .hf-missive .papier > i { font-size: 5cqw; filter: drop-shadow(0 0.3cqw 0 rgba(0,0,0,0.25)); }
 .hf-missive .papier > div { flex: 1; }
 .hf-missive small { color: #a8741f; -webkit-text-stroke: 0; }
@@ -359,23 +359,19 @@ details.dev summary { cursor: pointer; color: var(--muted); }
   background: linear-gradient(90deg, #6b3d16, #d69a58 45%, #7a4a1c); }
 .hf-missive .bout::before, .hf-missive .bout::after { content: ''; position: absolute; left: 50%; width: 1.5cqw; height: 1cqw; margin-left: -0.75cqw; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3b0, var(--yellow) 55%, var(--yellow-d)); border: 0.18cqw solid var(--ink); }
 .hf-missive .bout::before { top: -0.9cqw; } .hf-missive .bout::after { bottom: -0.9cqw; }
-.hf-missive .bout.g { left: calc(50% - 2.4cqw); } .hf-missive .bout.d { left: 50%; }
-.hf-missive.on .bout.g { animation: hf-bout-g 0.6s 0.5s cubic-bezier(.3,1,.4,1) both; }
-.hf-missive.on .bout.d { animation: hf-bout-d 0.6s 0.5s cubic-bezier(.3,1,.4,1) both; }
-.hf-missive.fin .bout.g { animation: hf-ferme-g 0.32s ease-in both; }
-.hf-missive.fin .bout.d { animation: hf-ferme-d 0.32s ease-in both; }
-.hf-missive .sceau { position: absolute; left: 50%; top: 50%; width: 4.4cqw; height: 4.4cqw; margin: -2.2cqw 0 0 -2.2cqw; border-radius: 50%; display: grid; place-items: center; font-size: 2cqw;
+.hf-missive .bout.g { left: -1.2cqw; } .hf-missive .bout.d { left: 1.2cqw; }   /* le rouleau de gauche reste en place */
+.hf-missive.on .bout.d { animation: hf-bout-d 0.75s 0.5s cubic-bezier(.3,1,.4,1) both; }
+.hf-missive.fin .bout.d { animation: hf-ferme-d 0.4s ease-in both; }
+.hf-missive .sceau { position: absolute; left: 1.2cqw; top: 50%; width: 4.4cqw; height: 4.4cqw; margin: -2.2cqw 0 0 -2.2cqw; border-radius: 50%; display: grid; place-items: center; font-size: 2cqw;
   background: radial-gradient(circle at 35% 30%, #ff7a6a, #c42f17 60%, #7a1a12); border: 0.22cqw solid var(--ink); box-shadow: 0 0 0 0.35cqw rgba(196,47,23,0.35); }
 .hf-missive.on .sceau { animation: hf-sceau 0.3s 0.45s ease-in both; }
 .hf-missive.fin .sceau { display: none; }
-@keyframes hf-arrive { from { opacity: 0; transform: translate(-10cqw, -26cqw) rotate(-28deg) scale(0.5); } to { opacity: 1; transform: none; } }
-@keyframes hf-repart { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(12cqw, -26cqw) rotate(24deg) scale(0.5); } }
-@keyframes hf-deroule { from { clip-path: inset(0 48% 0 48%); } to { clip-path: inset(0 0 0 0); } }
-@keyframes hf-enroule { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 48% 0 48%); } }
-@keyframes hf-bout-g { from { left: calc(50% - 2.4cqw); } to { left: -1.2cqw; } }
-@keyframes hf-bout-d { from { left: 50%; } to { left: calc(100% - 1.2cqw); } }
-@keyframes hf-ferme-g { from { left: -1.2cqw; } to { left: calc(50% - 2.4cqw); } }
-@keyframes hf-ferme-d { from { left: calc(100% - 1.2cqw); } to { left: 50%; } }
+@keyframes hf-arrive { from { opacity: 0; transform: translate(-16cqw, -26cqw) rotate(-28deg) scale(0.5); } to { opacity: 1; transform: none; } }
+@keyframes hf-repart { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(-16cqw, -26cqw) rotate(-24deg) scale(0.5); } }
+@keyframes hf-deroule { from { clip-path: inset(0 96% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes hf-enroule { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 96% 0 0); } }
+@keyframes hf-bout-d { from { left: 1.2cqw; } to { left: calc(100% - 1.2cqw); } }
+@keyframes hf-ferme-d { from { left: calc(100% - 1.2cqw); } to { left: 1.2cqw; } }
 @keyframes hf-sceau { 0% { transform: none; opacity: 1; } 40% { transform: scale(1.35); opacity: 1; } 100% { transform: scale(0.2) rotate(90deg); opacity: 0; } }
 .hf-theme { display: flex; align-items: baseline; gap: calc(var(--u) * 0.8); margin: calc(var(--u) * 1.4) 0 calc(var(--u) * 0.6); font-family: var(--f-title); font-weight: 400; color: var(--yellow); }
 .hf-theme small { font-family: inherit; color: #9fb8e8; font-size: 0.75em; }
@@ -4353,7 +4349,7 @@ window.PA = window.PA || {};
     particles(ctx, b) {
       const nouveau = PA.Fx && PA.Fx.actif();   // un autre style d'effets remplace les carrés et les anneaux d'avant
       for (const p of b.particles) {
-        if (nouveau && !p.bolt && !p.fete) continue;   // fete : confettis des hauts faits, toujours affichés
+        if (nouveau && !p.bolt) continue;
         const a = Math.max(0, p.life / p.max);
         if (p.ring) {
           ctx.strokeStyle = p.color; ctx.globalAlpha = a; ctx.lineWidth = 3;
@@ -9208,6 +9204,21 @@ window.PA = window.PA || {};
       const B = this.banc();
       const d = jouerGenerique(B, idx, B.ctx.currentTime + 0.05, 0.85);
       PA.Music.duck(d + 0.3, 0.25);
+    },
+
+    // haut fait : on souffle dans une corne (souffle, une note brève puis une longue, une quinte plus haut)
+    corne() {
+      if (!this.pret()) return;
+      const B = this.banc(), t = B.ctx.currentTime + 0.05;
+      bruit(B, { t, d: 0.35, type: 'bandpass', f0: 700, f1: 1100, q: 1.2, vol: 0.06, gonfle: 0.12 });
+      const note = (t0, f, d, v) => {
+        osc(B, { t: t0, type: 'sawtooth', f0: f * 0.93, f1: f, sw: 0.1, d, vol: 0.13 * v, a: 0.08, tenu: true, rel: 0.4, vib: [4.5, 9], fl: ['lowpass', 420, 1400, 1.3], rev: 0.4 });
+        osc(B, { t: t0, type: 'triangle', f0: f * 0.93, f1: f, sw: 0.1, d, vol: 0.16 * v, a: 0.08, tenu: true, rel: 0.4, rev: 0.4 });
+        bruit(B, { t: t0, d: d * 0.8, type: 'bandpass', f0: f * 3, q: 3, vol: 0.025 * v, tenu: true });
+      };
+      note(t + 0.1, 196, 0.34, 0.85);     // sol
+      note(t + 0.5, 294, 1.25, 1);        // ré, tenu
+      PA.Music.duck(2.1, 0.3);
     },
 
     // essai du son d'une tourelle (page d'écoute)

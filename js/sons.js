@@ -690,6 +690,21 @@ window.PA = window.PA || {};
       PA.Music.duck(d + 0.3, 0.25);
     },
 
+    // haut fait : on souffle dans une corne (souffle, une note brève puis une longue, une quinte plus haut)
+    corne() {
+      if (!this.pret()) return;
+      const B = this.banc(), t = B.ctx.currentTime + 0.05;
+      bruit(B, { t, d: 0.35, type: 'bandpass', f0: 700, f1: 1100, q: 1.2, vol: 0.06, gonfle: 0.12 });
+      const note = (t0, f, d, v) => {
+        osc(B, { t: t0, type: 'sawtooth', f0: f * 0.93, f1: f, sw: 0.1, d, vol: 0.13 * v, a: 0.08, tenu: true, rel: 0.4, vib: [4.5, 9], fl: ['lowpass', 420, 1400, 1.3], rev: 0.4 });
+        osc(B, { t: t0, type: 'triangle', f0: f * 0.93, f1: f, sw: 0.1, d, vol: 0.16 * v, a: 0.08, tenu: true, rel: 0.4, rev: 0.4 });
+        bruit(B, { t: t0, d: d * 0.8, type: 'bandpass', f0: f * 3, q: 3, vol: 0.025 * v, tenu: true });
+      };
+      note(t + 0.1, 196, 0.34, 0.85);     // sol
+      note(t + 0.5, 294, 1.25, 1);        // ré, tenu
+      PA.Music.duck(2.1, 0.3);
+    },
+
     // essai du son d'une tourelle (page d'écoute)
     apercuTourelle(id) {
       if (!this.pret() || !TOURELLES[id]) return;
