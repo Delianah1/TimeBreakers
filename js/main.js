@@ -1,6 +1,7 @@
 /* =========================================================================
    BOUCLE DE JEU ET DÉROULÉ D'UNE RUN
    camp → niveaux 1…N (5 par âge) → assaut final → fin de run → camp
+   (boss rush et défi du jour : js/modes.js)
    ========================================================================= */
 window.PA = window.PA || {};
 
@@ -135,7 +136,12 @@ window.PA = window.PA || {};
       PA.UI.update(true);
     },
 
-    mods() { return PA.computeMods(this.meta, this.run ? this.run.relics : []); },
+    mods() {
+      const run = this.run;
+      const m = PA.computeMods((run && run.metaNeutre) || this.meta, run ? run.relics : []);
+      if (run && run.defi && run.defi.regle.id === 'fortin') m.baseMaxHp += 0.5;   // défi du jour « Le fortin »
+      return m;
+    },
 
     // PV max de la base selon l'âge et les bonus. L'appelant gère le gain de PV.
     refreshBaseMax() {
@@ -200,6 +206,7 @@ window.PA = window.PA || {};
     handleEnd(b, result) {
       if (b !== this.battle) return;
       if (PA.Tuto && PA.Tuto.actif) return PA.Tuto.finCombat(result);   // tutoriel : ni prestige, ni récompense
+      if (this.run.mode) return PA.Modes.fin(b, result);                 // boss rush, défi du jour (js/modes.js)
       if (b.mode === 'level') {
         if (result === 'victory') this.levelVictory(b);
         else this.levelDefeat(b, 'defeat-level');
@@ -302,6 +309,7 @@ window.PA = window.PA || {};
 
     // -------------------------------------------------------- assaut final
     startAssault() {
+      if (!this.meta.rushOuvert) { this.meta.rushOuvert = true; PA.Meta.save(this.meta); this.rushDebloque = true; }   // le boss rush s'ouvre
       this.battle = new PA.Battle(this, { mode: 'assault', enemyAge: this.playableAges - 1 });
       this.paused = false;
       this.blocked = false;
@@ -347,6 +355,7 @@ window.PA = window.PA || {};
       if (!b) return;
       b.over = true;
       if (PA.Tuto && PA.Tuto.actif) return PA.Tuto.quitter();
+      if (this.run.mode) return PA.Modes.fin(b, 'abandon');
       if (b.mode === 'level') this.levelDefeat(b, 'abandon');
       else this.assaultDefeat(b, 'abandon');
     },

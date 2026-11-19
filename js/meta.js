@@ -30,6 +30,9 @@ PA.Meta = {
       powerPick: {},  // pouvoir équipé par âge : { id de l'âge: id du pouvoir } (rien = le pouvoir de contrôle)
       maxSpeed: 1,    // vitesse de jeu la plus haute achetée (1, 2 ou 3)
       agesV: 2,       // version de la liste des âges (2 = 11 âges, avec Antiquité et Vapeur)
+      champs: {},     // galerie : { id du champion: médaille 1 bronze, 2 argent, 3 or } (js/modes.js)
+      champsV: 1,     // la galerie existe dans cette sauvegarde (sinon : migration, js/modes.js)
+      rushOuvert: false,   // boss rush débloqué (premier assaut final atteint)
       difficulty: difficulty || 'facile' };   // la campagne à laquelle appartient cette sauvegarde
   },
 
@@ -40,6 +43,7 @@ PA.Meta = {
       if (raw) {
         const meta = this.migrate(JSON.parse(raw));
         meta.difficulty = difficulty;
+        if (PA.Modes) PA.Modes.migrer(meta);   // galerie des champions (js/modes.js)
         return meta;
       }
     } catch (e) { /* stockage indisponible : on joue sans sauvegarde */ }
@@ -51,6 +55,7 @@ PA.Meta = {
   // (les âges insérés en dessous sont offerts). Les élites sont rangées par id : rien à faire.
   migrate(saved) {
     const meta = Object.assign(this.defaults(), saved);
+    if (!saved.champsV) meta.champsV = 0;   // sauvegarde d'avant la galerie : PA.Modes.migrer la remplit
     if (!saved.agesV) {
       const n = saved.agesUnlocked || 0;
       meta.agesUnlocked = n <= 2 ? n : n <= 4 ? n + 1 : n + 2;

@@ -11,6 +11,8 @@ window.PA = window.PA || {};
   const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   const court = n => PA.court(n);                                   // 12,3 k · 1,46 M : pour les petits boutons
   const rnd = n => Math.round(n).toLocaleString('fr-FR');           // arrondi comme la mise à l'abri (Meta.bank)
+  // médaille de la galerie des champions : 1 bronze, 2 argent, 3 or (rien pour 0)
+  const med = m => (m ? `<i class="med m${m}" title="${['', 'Bronze', 'Argent', 'Or'][m]}">★</i>` : '');
 
   const UI = {
     init(game) {
@@ -36,6 +38,7 @@ window.PA = window.PA || {};
       this.el['btn-quit'].onclick = () => this.confirmAbandon();
       $('pause-veil').onclick = () => game.togglePause();
       $('pause-son').onclick = () => { PA.Music.basculer(); this.update(true); };
+      if ($('pause-fx')) $('pause-fx').onclick = () => { PA.Music.basculerFx(); this.update(true); };
       // Emplacements de tourelles, dans la barre du bas : « + » achète un emplacement ;
       // une tourelle se vend en deux appuis (le premier affiche le prix de revente).
       // Un seul écouteur, qui agit toujours sur le combat en cours.
@@ -117,7 +120,7 @@ window.PA = window.PA || {};
       ub.innerHTML = '';
       age.units.forEach((u, i) => {
         const btn = document.createElement('button');
-        const locked = u.elite && !PA.Meta.hasElite(game.meta, game.run.age);
+        const locked = u.elite && !PA.Meta.hasElite(b.meta, game.run.age);   // b.meta : neutre au défi du jour
         btn.className = 'buy' + (u.elite ? ' elite' : '') + (locked ? ' locked' : '');
         btn.dataset.idx = i;
         btn.title = locked ? `${u.name} — unité d’élite : à débloquer au camp pour ${fmt(PA.Meta.eliteCost(game.run.age))} ✦` : `${u.name} — ${u.desc} · ${fmt(u.hp)} PV (touche ${i + 1})`;
@@ -150,12 +153,21 @@ window.PA = window.PA || {};
       const run = game.run;
       document.body.classList.toggle('paused', !!(b && game.paused));
       $('pause-son').textContent = PA.Music.on ? '♪ Musique : oui' : '♪ Musique : non';
+      if ($('pause-fx')) $('pause-fx').textContent = PA.Music.fx ? '🔊 Sons : oui' : '🔊 Sons : non';
       if (!b || !run) return;
       if (this.builtForAge !== run.age) this.buildBattleButtons();
 
       // Titre du niveau (avec une étiquette quand la campagne est en difficile)
       const hardTag = game.meta.difficulty === 'difficile' ? '<span class="hard">Difficile</span> · ' : '';
-      if (b.mode === 'level') {
+      if (run.mode === 'rush') {
+        this.el['hud-level'].textContent = `Boss rush · ${run.i + 1} / ${run.etapes.length}`;
+        this.el['hud-enemy'].innerHTML = `${hardTag}${b.champDef.name} · ${C.ages[b.enemyAge].name}`;
+      } else if (run.mode === 'defi') {
+        this.el['hud-level'].textContent = 'Défi du jour';
+        this.el['hud-enemy'].innerHTML = b.phase === 'survie'
+          ? `${hardTag}<span class="warn">Tiens encore ${fmtTime(Math.max(0, PA.Modes.SURVIE - b.time))}</span> · ${run.defi.regle.nom}`
+          : `${hardTag}<span class="good">Porte fermée : détruis la base !</span> · ${run.defi.regle.nom}`;
+      } else if (b.mode === 'level') {
         const boss = b.isBoss ? ' · Boss' : '';
         this.el['hud-level'].textContent = `Niveau ${b.levelNumber} / ${game.totalLevels}${boss}`;
         const gap = b.enemyAge - run.age;
@@ -172,8 +184,14 @@ window.PA = window.PA || {};
 
       // Frise de la run : un point par niveau, un losange pour les boss, puis l'assaut.
       const cur = b.mode === 'level' ? b.levelNumber : game.totalLevels + 1;
-      const trackKey = `${cur}/${game.totalLevels}`;
-      if (this.el['hud-track'].dataset.key !== trackKey) {
+      const trackKey = `${run.mode || ''}${cur}/${game.totalLevels}${run.mode === 'defi' ? b.phase : ''}`;
+      if (run.mode && this.el['hud-track'].dataset.key !== trackKey) {
+        // Frise des modes à part : un losange par boss du rush, ou les deux phases du défi.
+        this.el['hud-track'].dataset.key = trackKey;
+        this.el['hud-track'].innerHTML = run.mode === 'rush'
+          ? `<span class="t-grp"><span class="t-age cur">Rush</span>${run.etapes.map((e, i) => `<i class="pip boss ${i < run.i ? 'done' : i === run.i ? 'cur' : ''}" title="${PA.Champions.DEFS[e.age][e.k].name}"></i>`).join('')}</span>`
+          : `<span class="t-grp"><span class="t-age ${b.phase === 'survie' ? 'cur' : ''}">Survie</span><span class="t-age ${b.phase === 'survie' ? '' : 'cur'}">Assaut</span></span>`;
+      } else if (!run.mode && this.el['hud-track'].dataset.key !== trackKey) {
         this.el['hud-track'].dataset.key = trackKey;
         const per = C.levels.perAge;
         let h = '';
@@ -201,8 +219,8 @@ window.PA = window.PA || {};
       const atRisk = b.mode === 'level'
         ? `${Math.floor(b.killsPP)}/${Math.round(b.killsPPCap)}${b.killsPP >= b.killsPPCap ? ' max' : ''}`
         : court(Math.round(b.cagnotte));
-      this.el['hud-pp'].textContent = `${court(run.ppLevels)} +${atRisk}`;
-      this.el['hud-pp'].title = b.mode === 'level'
+      this.el['hud-pp'].textContent = run.mode ? '—' : `${court(run.ppLevels)} +${atRisk}`;
+      this.el['hud-pp'].title = run.mode ? 'Pas de prestige pendant ce mode' : b.mode === 'level'
         ? 'Prestige à l’abri, puis celui des kills de ce niveau / plafond (mis à l’abri quand tu gagnes le niveau).'
         : 'Prestige à l’abri, puis cagnotte de l’assaut final';
       this.el['btn-pause'].textContent = game.paused ? '▶' : 'Ⅱ';
@@ -237,13 +255,14 @@ window.PA = window.PA || {};
         }
         const cost = b.unitCost(units[i]);
         btn.querySelector('.cost').textContent = court(cost);
-        btn.classList.toggle('cant', run.gold < cost);
+        const interdit = b.defi && b.defi.regle.id === 'solo' && i !== b.defi.solo;   // défi « Une seule unité »
+        btn.classList.toggle('cant', run.gold < cost || interdit);
         btn.disabled = b.over;
       });
       const turrets = C.ages[run.age].turrets;
       const freeSlot = run.turrets.some(t => !t);
       [...this.el['turret-buttons'].children].forEach((btn, i) => {
-        btn.classList.toggle('cant', run.gold < turrets[i].cost || !freeSlot);
+        btn.classList.toggle('cant', run.gold < turrets[i].cost || !freeSlot || !!(b.defi && b.defi.regle.id === 'or2'));
         btn.disabled = b.over;
       });
 
@@ -419,7 +438,7 @@ window.PA = window.PA || {};
             ${canAge ? `<div class="badge">NOUVEL ÂGE<br>disponible !</div>` : ''}
             <h1>TIME <br><em>BREAKERS</em></h1>
             <button class="play" data-action="start">JOUER</button>
-            ${PA.Tuto ? '<div class="decouvrir"><button class="tuto" data-action="tuto">Tutoriel</button><button class="visite" data-action="guide">Visite des menus</button></div>' : ''}
+            <div class="decouvrir">${PA.Tuto ? '<button class="tuto" data-action="tuto">Tutoriel</button><button class="visite" data-action="guide">Visite des menus</button>' : ''}${PA.Modes ? this.boutonsModes(meta) : ''}</div>
             <div class="stats">${PA.Meta.playableAgeCount(meta)} âges sur ${C.ages.length} · Meilleur niveau ${meta.bestLevel} · Meilleure vague ${meta.bestWave} · ${meta.runs} run${meta.runs > 1 ? 's' : ''}<small>${D.name} : ${D.desc}</small></div>
           </div>`,
         // Améliorations : deux sous-catégories, « Bonus » et « Vitesse » (l'ancien onglet Vitesse).
@@ -429,6 +448,8 @@ window.PA = window.PA || {};
             : `<p class="camp-hint">Bonus permanents, valables à chaque run. Débloquer des âges relève le plafond.</p><div class="upgrades">${ups}</div>`),
         ages: `<p class="camp-hint">Chaque âge débloqué ajoute 5 niveaux à la run. Ils s’achètent dans l’ordre.</p><div class="ages">${ages}</div>`,
         elites: `<p class="camp-hint">La 4e unité de chaque âge : dégâts de zone, réservée à ton armée.</p><div class="upgrades">${elites}</div>`,
+        rush: PA.Modes && tab === 'rush' ? this.panneauRush(meta) : '',
+        defi: PA.Modes && tab === 'defi' ? this.panneauDefi(meta) : '',
         pouvoirs: `<p class="camp-hint">Un pouvoir équipé par âge. Celui de contrôle est offert ; les trois autres s’achètent une fois l’âge débloqué.</p><div class="upgrades pouvoirs">${pouvoirs}</div>`,
       };
       const tabs = [['ups', '⚒', 'Améliorations'], ['ages', '⏳', 'Âges'], ['play', '⚔', 'Bataille'], ['elites', '★', 'Élites'], ['pouvoirs', '✦', 'Pouvoirs']]
@@ -485,7 +506,7 @@ window.PA = window.PA || {};
         <div class="camp-top">
           <div class="cur" title="Points de prestige"><i>✦</i>${fmt(meta.balance)}</div>
           <div class="seg" title="Chaque difficulté a sa propre progression">${Object.keys(C.difficulties).map(id => `<button data-action="diff" data-arg="${id}" class="d-${id}${id === meta.difficulty ? ' on' : ''}">${C.difficulties[id].name}</button>`).join('')}</div>
-          <div class="side">${meta.totalEarned > meta.balance ? `<span class="muted">Total gagné : ${fmt(meta.totalEarned)} ✦</span>` : ''}<button data-action="musique" class="son${PA.Music.on ? '' : ' off'}" title="Musique : oui / non">♪</button><button data-action="tab" data-arg="${tab === 'aide' ? 'play' : 'aide'}" title="Aide et réglages">${tab === 'aide' ? '✕' : '?'}</button></div>
+          <div class="side">${meta.totalEarned > meta.balance ? `<span class="muted">Total gagné : ${fmt(meta.totalEarned)} ✦</span>` : ''}<button data-action="musique" class="son${PA.Music.on ? '' : ' off'}" title="Musique : oui / non">♪</button><button data-action="bruitages" class="son${PA.Music.fx ? '' : ' off'}" title="Effets sonores : oui / non">🔊</button><button data-action="tab" data-arg="${tab === 'aide' ? 'play' : 'aide'}" title="Aide et réglages">${tab === 'aide' ? '✕' : '?'}</button></div>
         </div>
         <div class="camp-body ${tab === 'play' ? '' : 'list'}">${tab === 'aide' ? `<div>${aide}</div>` : bodies[tab]}</div>
         <nav class="tabs">${tabs}</nav>
@@ -495,12 +516,17 @@ window.PA = window.PA || {};
         // JOUER : qui n'a jamais fait le tutoriel se voit poser la question une fois (js/tuto.js).
         start: () => { if (PA.Tuto && PA.Tuto.doitConfirmer()) return PA.Tuto.confirmer(); this.campTab = 'play'; game.newRun(); },
         tuto: () => PA.Tuto.lancer(),
+        // Boss rush et défi du jour (js/modes.js)
+        lancerRush: () => { if (PA.Modes.rushOuvert(meta) && PA.Modes.rushEtapes(meta).length) PA.Modes.lancerRush(); },
+        lancerDefi: () => { if (PA.Modes.defiOuvert(meta)) PA.Modes.lancerDefi(); },
         guide: () => { this.campTab = 'play'; this.showCamp(); PA.Tuto.guide(); },
         diff: d => game.setDifficulty(d),
         musique: (arg, el) => { const on = PA.Music.basculer(); el.classList.toggle('off', !on); },
+        // bouton rapide des effets sonores ; tient à jour le « Oui / Non » de l'aide s'il est affiché
+        bruitages: (arg, el) => { const on = PA.Music.basculerFx(); el.classList.toggle('off', !on); document.querySelectorAll('[data-action="effets"]').forEach(b => b.classList.toggle('on', (b.dataset.arg === '1') === on)); },
         styleVisuel: (s, el) => { PA.Fx.choisir(s); el.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); },
         styleFx: (mode, el) => { if (mode === 'reel' && !PA.Sons.reelDispo()) return; PA.Music.fxMode = mode; PA.Music.sauver(); if (mode === 'reel') { PA.Music.contexte(); PA.Sons.precharger(); } el.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); if (PA.Music.fx) PA.Sons.apercu('raptor'); },
-        effets: (oui, el) => { PA.Music.fx = oui === '1'; PA.Music.sauver(); el.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); if (PA.Music.fx && PA.Sons) PA.Sons.apercu('raptor'); },
+        effets: (oui, el) => { PA.Music.fx = oui === '1'; PA.Music.sauver(); el.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); document.querySelectorAll('[data-action="bruitages"]').forEach(b => b.classList.toggle('off', !PA.Music.fx)); if (PA.Music.fx && PA.Sons) PA.Sons.apercu('raptor'); },
         sonorite: (so, el) => { PA.Music.choisirSonorite(so); el.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); },
         // Outils de test : ne font rien dans la version publique (PA.DEV est faux), même appelés à la main.
         devPP: n => { if (!PA.DEV) return; meta.balance += Number(n) || 1000; PA.Meta.save(meta); this.showCamp(); },
@@ -532,6 +558,117 @@ window.PA = window.PA || {};
         volFx.oninput = e => PA.Music.reglerFx(e.target.value / 100);
         volFx.onchange = () => { if (PA.Sons) PA.Sons.apercu('cogneur'); };   // un petit coup pour juger le niveau
       }
+    },
+
+    // ------------------------------------------------ boss rush et défi du jour (js/modes.js)
+    boutonsModes(meta) {
+      const M = PA.Modes, s = M.etatDefi(meta);
+      const fait = s.dernierReussi === s.jour;
+      const defi = M.defiOuvert(meta)
+        ? `<button class="mode-btn defi" data-action="tab" data-arg="defi"><b>☀ Défi du jour</b><small>${fait ? '✓ réussi aujourd’hui' : M.defi().regle.nom}</small></button>`
+        : '<button class="mode-btn defi" disabled title="Termine une première partie"><b>🔒 Défi du jour</b><small>après ta première partie</small></button>';
+      const rush = M.rushOuvert(meta)
+        ? `<button class="mode-btn rush" data-action="tab" data-arg="rush"><b>♛ Boss rush</b><small>${M.nbVaincus(meta)} / ${PA.Champions.DEFS.flat().length} champions</small></button>`
+        : `<button class="mode-btn rush" data-action="tab" data-arg="rush"><b>🔒 Boss rush</b><small>galerie : ${M.nbVaincus(meta)} / ${PA.Champions.DEFS.flat().length}</small></button>`;
+      return defi + rush;
+    },
+
+    panneauRush(meta) {
+      const M = PA.Modes, P = C.prestige;
+      const ouvert = M.rushOuvert(meta), etapes = M.rushEtapes(meta);
+      const r = meta.rush || { best: 0, temps: null, complets: 0 };
+      const ICONES = [0, 1, 2, 3].map(med);
+      const galerie = C.ages.map((age, a) => {
+        const cartes = (PA.Champions.DEFS[a] || []).map(d => {
+          const m = M.medaille(meta, d.id);
+          return `<div class="champ-carte${m ? '' : ' inconnu'}" title="${m ? d.desc : 'Pas encore vaincu'}">
+            <img alt="" src="${PA.Render.portrait('unit', d)}"><span class="nom">${m ? d.name : '???'}</span>${ICONES[m]}</div>`;
+        }).join('');
+        return `<div class="champ-age"><h4>${P.ageNames[a]}</h4><div class="champ-ligne">${cartes}</div></div>`;
+      }).join('');
+      const record = r.best ? `Record : <b>${r.best} boss</b> d’affilée${r.temps != null ? ` en ${fmtTime(r.temps)}` : ''}${r.complets ? ` · ${r.complets} rush${r.complets > 1 ? 's' : ''} complet${r.complets > 1 ? 's' : ''}` : ''}` : 'Pas encore de record.';
+      const bouton = !ouvert
+        ? '<button class="primary" disabled>🔒 Atteins un premier assaut final</button>'
+        : etapes.length
+          ? `<button class="primary" data-action="lancerRush">Lancer le rush (${etapes.length} boss)</button>`
+          : '<button class="primary" disabled>Vaincs d’abord un champion en partie</button>';
+      return `<div class="mode-panneau">
+        <h2>♛ Boss rush</h2>
+        <p class="camp-hint">Un champion par âge, à la suite, parmi ceux que tu as déjà vaincus. Ton armée a toujours l’âge du champion. Entre deux boss : une récompense au choix et +25 % de PV pour ta base. Pas de prestige ici, seulement des records et des médailles.</p>
+        <p class="mode-record">${record}</p>
+        <div class="actions">${bouton}</div>
+        <h3>Galerie des champions <small class="legende">${med(1)} vaincu en partie ${med(2)} vaincu au rush ${med(3)} au rush, base au-dessus de 50 %</small></h3>
+        <div class="galerie">${galerie}</div>
+      </div>`;
+    },
+
+    panneauDefi(meta) {
+      const M = PA.Modes, d = M.defi(), s = M.etatDefi(meta);
+      const ouvert = M.defiOuvert(meta);
+      const regle = d.regle.id === 'solo' ? `${d.regle.desc} Aujourd’hui : <b>${C.ages[d.age].units[d.solo].name}</b>.` : d.regle.desc;
+      const gain = s.recompense === s.jour ? '<span class="muted">Récompense du jour déjà touchée</span>' : `<b style="color:var(--pp)">+${fmt(M.recompenseDefi(meta))} ✦</b> au premier succès du jour`;
+      const best = s.meilleur ? `Ton meilleur aujourd’hui : <b>${fmtTime(s.meilleur.t)}</b>, base à ${s.meilleur.base} %` : 'Pas encore réussi aujourd’hui.';
+      return `<div class="mode-panneau">
+        <h2>☀ Défi du jour</h2>
+        <p class="mode-nom">${d.nom}</p>
+        <p class="camp-hint">Le même défi pour tout le monde aujourd’hui. Tes améliorations et tes élites ne comptent pas : tout le monde part à égalité.</p>
+        <div class="defi-grille">
+          <div><span class="muted">Ton armée</span><b>${C.ages[d.age].name}</b></div>
+          <div><span class="muted">L’ennemi</span><b>${C.ages[d.ennemi].name}</b><small>sa base t’attend avec une tourelle</small></div>
+          <div><span class="muted">Les vagues</span><b>${d.melange.nom}</b><small>${d.melange.desc}</small></div>
+          <div><span class="muted">La règle</span><b>${d.regle.nom}</b><small>${regle}</small></div>
+        </div>
+        <ol class="rules defi-etapes"><li><b>Survis ${Math.floor(M.SURVIE / 60)} minutes</b> : la base ennemie est intouchable et envoie des unités de plusieurs âges.</li><li><b>La porte se ferme</b> : plus de renforts. Détruis sa base le plus vite possible.</li></ol>
+        <p class="mode-record">${best} · Essais : ${s.essais} · Série : <b>${s.serie} jour${s.serie > 1 ? 's' : ''}</b><br>${gain}</p>
+        <div class="actions">${ouvert ? '<button class="primary" data-action="lancerDefi">Relever le défi</button>' : '<button class="primary" disabled>🔒 Termine d’abord une partie</button>'}</div>
+      </div>`;
+    },
+
+    showRushEtape(run, b, choix) {
+      const game = this.game, der = run.medailles[run.medailles.length - 1];
+      const suiv = run.etapes[run.i], ch = PA.Champions.DEFS[suiv.age][suiv.k];
+      const cards = choix.map(id => {
+        const r = C.relics.find(x => x.id === id), tx = PA.relicText(r, run.relics);
+        const style = r.element ? ` style="border-color:${C.elements[r.element].color}"` : '';
+        return `<button class="card${r.element ? ' elem' : ''}"${style} data-action="relic" data-arg="${r.id}"><span class="icon">${r.icon}</span><span class="name">${tx.name}</span><span class="desc">${tx.desc}</span></button>`;
+      }).join('');
+      this.overlay(`
+        <h2>${der.ch.name} est vaincu !</h2>
+        <p class="sub">Temps : ${fmtTime(der.t)} · ${med(der.m)} ${['', '', 'médaille d’argent', 'médaille d’or'][der.m]}${der.neuve ? ' (nouvelle !)' : ''} · Choisis une récompense :</p>
+        <div class="cards">${cards}</div>
+        <div class="next-box"><b>Prochain boss (${run.i + 1} / ${run.etapes.length}) : ${ch.name}</b> — ${C.ages[suiv.age].name} · ${ch.desc}</div>
+        <p class="muted">Ta base récupère 25 % de ses PV et ton or est remplacé par une somme fixe.</p>
+      `, { relic: id => PA.Modes.choisirRush(id) });
+    },
+
+    showRushFin(o) {
+      const game = this.game, run = o.run;
+      const lignes = run.medailles.map((x, i) => `<tr><td>${i + 1}. ${x.ch.name} ${med(x.m)}${x.neuve ? ' <span class="good">nouvelle</span>' : ''}</td><td>${fmtTime(x.t)}</td></tr>`).join('');
+      const titre = o.complet ? 'Rush terminé : tous les boss sont tombés !' : o.result === 'abandon' ? 'Rush abandonné' : 'Ta base est tombée';
+      this.overlay(`
+        <h2>${titre}</h2>
+        <p class="sub">${run.medailles.length} / ${run.etapes.length} boss vaincus · temps total ${fmtTime(run.temps)}${o.record ? ' · <b class="good">nouveau record !</b>' : ''}</p>
+        ${lignes ? `<table class="breakdown">${lignes}</table>` : ''}
+        <p class="muted">Record : ${o.rec.best} boss d’affilée${o.rec.temps != null ? ` en ${fmtTime(o.rec.temps)}` : ''}.</p>
+        <div class="actions"><button data-action="galerie">Voir la galerie</button><button class="primary" data-action="camp">Retour au camp</button></div>
+      `, { camp: () => { this.campTab = 'play'; game.showCamp(); }, galerie: () => { this.campTab = 'rush'; game.showCamp(); } });
+    },
+
+    showDefiFin(o) {
+      const game = this.game, s = o.etat;
+      const titre = o.result === 'victory' ? 'Défi réussi !' : o.result === 'abandon' ? 'Défi abandonné' : o.phase === 'survie' ? 'Ta base est tombée pendant la survie' : 'Ta base est tombée pendant l’assaut';
+      this.overlay(`
+        <h2>${titre}</h2>
+        <p class="sub">${o.defi.nom}</p>
+        ${o.score ? `<table class="breakdown">
+          <tr><td>Temps</td><td>${fmtTime(o.score.t)}</td></tr>
+          <tr><td>Base restante</td><td>${o.score.base} %</td></tr>
+          ${o.gain ? `<tr class="total"><td>Récompense du jour</td><td>+${fmt(o.gain)} ✦</td></tr>` : ''}
+        </table>` : `<p>Tu as tenu ${fmtTime(o.temps)}.</p>`}
+        ${o.record ? '<p class="good"><b>Ton meilleur temps du jour !</b></p>' : ''}
+        <p class="muted">Série : ${s.serie} jour${s.serie > 1 ? 's' : ''} · Essais aujourd’hui : ${s.essais}${s.meilleur ? ` · Meilleur : ${fmtTime(s.meilleur.t)}, base à ${s.meilleur.base} %` : ''}</p>
+        <div class="actions"><button data-action="encore">Réessayer</button><button class="primary" data-action="camp">Retour au camp</button></div>
+      `, { camp: () => { this.campTab = 'play'; game.showCamp(); }, encore: () => PA.Modes.lancerDefi() });
     },
 
     showVictory(d) {
@@ -624,9 +761,10 @@ window.PA = window.PA || {};
       if (!b || b.over || game.blocked) return;
       game.blocked = true;
       const loss = PA.Meta.lossRate(game.meta);
+      const mode = game.run && game.run.mode;
       this.overlay(`
-        <h2>Abandonner la run ?</h2>
-        <p>Les points déjà mis à l’abri sont conservés. Tu perds ${pct(loss)} des points en jeu.</p>
+        <h2>${mode === 'rush' ? 'Abandonner le boss rush ?' : mode === 'defi' ? 'Abandonner le défi ?' : 'Abandonner la run ?'}</h2>
+        <p>${mode === 'rush' ? 'Les médailles déjà gagnées sont conservées.' : mode === 'defi' ? 'Tu pourras retenter le défi autant de fois que tu veux aujourd’hui.' : `Les points déjà mis à l’abri sont conservés. Tu perds ${pct(loss)} des points en jeu.`}</p>
         <div class="actions">
           <button data-action="no">Continuer à jouer</button>
           <button class="danger" data-action="yes">Abandonner</button>
@@ -671,9 +809,11 @@ window.PA = window.PA || {};
         </table>
         ${lostNote}
         ${newAge}
+        ${game.rushDebloque ? '<p class="good"><b>Nouveau mode débloqué : le boss rush !</b> Retrouve-le sur l’accueil.</p>' : ''}
         <p class="muted">Solde : ${fmt(meta.balance)} ✦ · Total gagné depuis le début : ${fmt(meta.totalEarned)} ✦</p>
         <div class="actions"><button class="primary" data-action="camp">Retour au camp</button></div>
       `, { camp: () => game.showCamp() });
+      game.rushDebloque = false;
     },
   };
 

@@ -137,7 +137,11 @@ window.PA = window.PA || {};
       if (T > DUR) return;
       let title, sub, color = '#ffd76a';
       let sub2 = '';
-      if (b.mode === 'assault') {
+      if (b.banniere) {                   // boss rush, défi du jour (js/modes.js)
+        ({ title, sub } = b.banniere);
+        sub2 = b.banniere.sub2 || '';
+        color = b.banniere.color || color;
+      } else if (b.mode === 'assault') {
         title = 'ASSAUT FINAL';
         sub = 'Les vagues ne s’arrêtent plus';
         color = '#ffb08a';

@@ -83,7 +83,7 @@ window.PA = window.PA || {};
     constructor(game, opts) {
       this.game = game;
       this.run = game.run;
-      this.meta = game.meta;
+      this.meta = (game.run && game.run.metaNeutre) || game.meta;   // défi du jour : sans améliorations ni élites (js/modes.js)
       this.mode = opts.mode;
       this.enemyAge = opts.enemyAge;
       this.levelNumber = opts.levelNumber || 0;
@@ -135,6 +135,11 @@ window.PA = window.PA || {};
         this.reinf = 0;
         this.reinfFlash = 0;
         this.baseStatMult = this.statMult;
+        // Boss rush et défi du jour (js/modes.js) : pas de prestige pendant le combat, pas de ruée.
+        this.special_ = opts.special || null;
+        if (this.special_) { this.killsPPCap = 0; this.rushLeft = this.rushTotal = 0; }
+        if (this.special_ === 'rush') { this.ai.champT = PA.Modes.RUSH.champ; this.ai.income *= PA.Modes.RUSH.escorte; }
+        if (this.special_ === 'defi') PA.Modes.preparerDefi(this);
         this.baseIncome = this.ai.income;
       } else {
         this.statMult = C.assault.startStatMult * this.diffStat;
@@ -154,7 +159,8 @@ window.PA = window.PA || {};
     }
 
     // Or par seconde, uniquement grâce à l'amélioration « Collecteurs ».
-    passiveGold() { return this.mods.passiveGold * C.economy.passiveGoldPerLevel[this.run.age]; }
+    // Défi du jour : un petit revenu fixe en plus, sinon une fois la porte fermée (plus de kills) on pouvait rester sans or.
+    passiveGold() { return this.mods.passiveGold * C.economy.passiveGoldPerLevel[this.run.age] + (this.defi ? C.economy.minGoldAtLevelStart[this.run.age] * PA.Modes.DEFI_REVENU : 0); }
     // Les unités coûtent ×3 à chaque âge : sans ce facteur, le prestige des kills exploserait.
     killValue() { return C.prestige.killValueByAge[this.enemyAge] ?? 1; }
 
@@ -202,6 +208,7 @@ window.PA = window.PA || {};
         return this.game.toast(`${def.name} : unité d’élite à débloquer au camp (${PA.Meta.eliteCost(this.run.age).toLocaleString('fr-FR')} ✦)`);
       }
       const cost = this.unitCost(def);
+      if (this.defi && this.defi.regle.id === 'solo' && idx !== this.defi.solo) return this.game.toast(`Défi du jour : seule l’unité ${this.playerAge.units[this.defi.solo].name} est permise`);
       if (this.queue.length >= C.economy.queueSize) return this.game.toast('File d’entraînement pleine');
       if (this.run.gold < cost) return this.game.toast('Pas assez d’or');
       this.run.gold -= cost;
@@ -213,6 +220,7 @@ window.PA = window.PA || {};
       if (this.over) return;
       const def = this.playerAge.turrets[idx];
       if (!def) return;
+      if (this.defi && this.defi.regle.id === 'or2') return this.game.toast('Défi du jour : pas de tourelles aujourd’hui');
       const slot = this.run.turrets.findIndex(t => !t);
       if (slot < 0) return this.game.toast('Aucun emplacement libre : achète un emplacement ou vends une tourelle');
       if (this.run.gold < def.cost) return this.game.toast('Pas assez d’or');
@@ -230,6 +238,7 @@ window.PA = window.PA || {};
 
     slotCost() {
       const n = this.run.turrets.length;
+      if (this.defi && this.defi.regle.id === 'or2') return null;
       return n >= 4 ? null : C.economy.slotCosts[n - 1];
     }
 
@@ -301,9 +310,10 @@ window.PA = window.PA || {};
       this.pu.push(new Unit(def, 1, s.hp, s.dmg, age, false));
     }
 
-    spawnEnemy(def, isChampion, statMult) {
+    // age : l'âge de l'unité s'il diffère de celui des ennemis (défi du jour : unités de plusieurs âges).
+    spawnEnemy(def, isChampion, statMult, age) {
       const m = statMult || this.statMult;
-      const u = new Unit(def, -1, def.hp * m, def.dmg * m, this.enemyAge, isChampion);
+      const u = new Unit(def, -1, def.hp * m, def.dmg * m, age ?? this.enemyAge, isChampion);
       this.eu.push(u);
       if (isChampion && def.cap && PA.Champions) PA.Champions.nait(this, u);
       return u;
@@ -342,6 +352,7 @@ window.PA = window.PA || {};
       const m = this.mods;
       const e = C.economy;
       if (u.clone) return;                          // fausse Reine des ombres : ni or ni prestige
+      if (u.isChampion && u.side === -1 && !u.retourne && PA.Modes) PA.Modes.championTue(this, u);   // galerie, boss rush
       if (u.side === -1 && !u.retourne) {
         const gold = u.cost * e.killGoldMult * (1 + m.goldGain);
         this.run.gold += gold;
@@ -402,7 +413,7 @@ window.PA = window.PA || {};
       if (this.run.base.hp <= 0) {
         this.run.base.hp = 0;
         this.end('defeat');
-      } else if (this.mode === 'level' && this.enemyBase.hp <= 0) {
+      } else if ((this.mode === 'level' && this.enemyBase.hp <= 0) || this.champTue) {   // boss rush : le champion abattu suffit
         this.enemyBase.hp = 0;
         this.end('victory');
       }
@@ -453,6 +464,7 @@ window.PA = window.PA || {};
     updateAI(dt) {
       const L = C.levels;
       const ai = this.ai;
+      if (this.defi) return PA.Modes.majDefi(this, dt);   // défi du jour : son IA à lui (js/modes.js)
       this.updateReinforcements(dt);
       ai.gold += ai.income * dt;
       if (this.time < 2) return;
@@ -488,9 +500,13 @@ window.PA = window.PA || {};
         this.sortUnits();
       }
       if (this.isBoss) {
-        ai.champT -= dt;
+        // Un seul champion à la fois : le suivant n'arrive que 45 s après la mort du précédent.
+        // Empilés (un toutes les 45 s, vivants ou non), deux Grands chamans se soignaient l'un l'autre
+        // et le niveau 10 devenait un mur : 8 runs sur 12 d'une sauvegarde neuve y mouraient au pilote.
+        const enJeu = this.eu.some(u => u.isChampion && !u.dead && !u.clone);
+        if (!enJeu) ai.champT -= dt;
         const champ = this.champDef;
-        if (ai.champT <= 0 && this.canSpawn(-1, champ.w)) {
+        if (!enJeu && ai.champT <= 0 && this.canSpawn(-1, champ.w)) {
           this.spawnEnemy(champ, true);
           ai.champT = L.championEvery;
           this.game.toast(`${champ.name} entre en scène !`);

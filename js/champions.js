@@ -28,6 +28,8 @@ window.PA = window.PA || {};
   // ---------------------------------------------------------------- la table
   const ARCH = { colosse: { hp: 1.2, dmg: 0.9 }, meneur: { hp: 0.85, dmg: 0.85 }, perturbateur: { hp: 0.8, dmg: 0.9 } };
   const GENRES = { colosse: 'Colosse', meneur: 'Meneur', perturbateur: 'Perturbateur' };
+  // Grand chaman : portée 80, pas 170. À la portée des frondeurs, il restait derrière sa ligne où un seul de tes
+  // tireurs l'atteignait à la fois, et ses boules de feu fauchaient la file : seul contre 16 unités, il gagnait toujours.
   const TABLE = {
     jurassique: [
       { id: 'spinosaure', name: 'Spinosaure des marais', genre: 'colosse', w: 96, h: 84, cap: { type: 'rage' }, desc: 'Sous la moitié de ses PV, il s’enrage et frappe deux fois plus vite.' },
@@ -35,8 +37,8 @@ window.PA = window.PA || {};
       { id: 'quetzal', name: 'Quetzalcoatlus géant', genre: 'perturbateur', w: 70, h: 58, vol: 80, cap: { type: 'rapt', every: 10, first: 4 }, desc: 'Il vole : seuls tes tireurs et tes tourelles le touchent. Il enlève une unité et la lâche chez l’ennemi.' },
     ],
     pierre: [
-      { id: 'mammouth-clan', name: 'Mammouth laineux du clan', genre: 'colosse', w: 90, h: 100, speed: 34, cap: { type: 'charge', every: 9, first: 2 }, desc: 'Sa charge renverse toute ta première ligne.' },
-      { id: 'grand-chaman', name: 'Grand chaman', genre: 'meneur', w: 30, h: 84, kind: 'ranged', range: 170, projectile: { look: 'fireball', speed: 380, arc: true, splash: 40 }, cap: { type: 'soin', every: 7, first: 5 }, desc: 'Sa transe soigne les ennemis autour de lui.' },
+      { id: 'mammouth-clan', name: 'Mammouth laineux du clan', genre: 'colosse', w: 90, h: 100, speed: 34, cap: { type: 'charge', every: 12, first: 2 }, desc: 'Sa charge renverse toute ta première ligne.' },
+      { id: 'grand-chaman', name: 'Grand chaman', genre: 'meneur', w: 30, h: 84, kind: 'ranged', range: 80, projectile: { look: 'fireball', speed: 380, arc: true, splash: 40 }, cap: { type: 'soin', every: 7, first: 5 }, desc: 'Sa transe soigne les ennemis autour de lui.' },
       { id: 'ours-cavernes', name: 'Ours des cavernes', genre: 'perturbateur', w: 64, h: 62, speed: 52, cap: { type: 'bond' }, desc: 'Il bondit par-dessus ta mêlée et retombe sur tes tireurs.' },
     ],
     antiquite: [
@@ -197,7 +199,7 @@ window.PA = window.PA || {};
       let n = 0;
       for (const f of b.eu) {
         if (f.dead || f.cache || Math.abs(f.x - u.x) > 230 || f.hp >= f.maxHp) continue;
-        f.hp = Math.min(f.maxHp, f.hp + f.maxHp * (f === u ? 0.08 : 0.25)); n++;
+        f.hp = Math.min(f.maxHp, f.hp + f.maxHp * (f === u ? 0.04 : 0.08)); n++;   // 25 % par transe rendait ses troupes increvables
         texte(b, f.x, GROUND - f.h - 20 - (f.alt || 0), '+', '#8dff7a');
       }
       if (n) { cs.fx = 1.4; titre(b, u, 'TRANSE : SOIN', '#8dff7a'); }
