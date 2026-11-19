@@ -331,6 +331,23 @@ details.dev summary { cursor: pointer; color: var(--muted); }
 .hf-bandeau b { font-family: var(--f-title); font-size: 1.35em; font-weight: 400; }
 .hf-bandeau span { color: #d6e4ff; }
 .hf-bandeau em { font-style: normal; color: var(--yellow); font-weight: 700; white-space: nowrap; }
+/* hauts faits en pleine partie : un trophée jaillit au centre du terrain */
+.hf-fx { position: absolute; z-index: 6; pointer-events: none; color: #fff; text-align: center; }
+.hf-fx small { display: block; color: var(--yellow); text-transform: uppercase; letter-spacing: 0.1em; font-family: var(--f-title); font-size: 1.3cqw; -webkit-text-stroke: 0.3cqw var(--ink); paint-order: stroke fill; }
+.hf-fx b { display: block; font-family: var(--f-title); font-weight: 400; font-size: 3.2cqw; line-height: 1.05; -webkit-text-stroke: 0.55cqw var(--ink); paint-order: stroke fill; }
+.hf-fx span { display: block; font-weight: 600; font-size: 1.35cqw; text-shadow: 0 0 0.4cqw #000, 0 0 0.4cqw #000; margin-top: 0.3cqw; }
+.hf-fx em { display: inline-block; margin-top: 0.4cqw; font-style: normal; font-family: var(--f-title); font-size: 1.7cqw; color: #4a3200; background: linear-gradient(#fff3b0, var(--yellow)); border: 0.22cqw solid var(--ink); border-radius: 9cqw; padding: 0.1cqw 1.2cqw; }
+.hf-fx i { font-style: normal; }
+
+.hf-trophee { left: 50%; top: 40%; width: 60cqw; transform: translate(-50%, -50%) scale(0.2); opacity: 0; transition: transform 0.45s cubic-bezier(.2,1.6,.4,1), opacity 0.25s; }
+.hf-trophee.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+.hf-trophee.fin { transform: translate(-50%, -60%) scale(0.85); opacity: 0; transition: transform 0.5s ease-in, opacity 0.5s; }
+.hf-trophee .rayons { position: absolute; left: 50%; top: 4cqw; width: 30cqw; height: 30cqw; margin: -15cqw 0 0 -15cqw; border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255,210,63,0.55) 0 10deg, transparent 10deg 30deg); -webkit-mask: radial-gradient(circle, #000 25%, transparent 70%); mask: radial-gradient(circle, #000 25%, transparent 70%); animation: hf-tourne 4s linear infinite; }
+.hf-trophee > i { position: relative; display: block; font-size: 8cqw; line-height: 1; filter: drop-shadow(0 0 1.5cqw rgba(255,210,63,0.9)); animation: hf-pulse 0.9s ease-in-out infinite alternate; }
+.hf-trophee .txt { position: relative; margin-top: 0.6cqw; }
+@keyframes hf-tourne { to { transform: rotate(360deg); } }
+@keyframes hf-pulse { from { transform: scale(1); } to { transform: scale(1.08); } }
 .hf-theme { display: flex; align-items: baseline; gap: calc(var(--u) * 0.8); margin: calc(var(--u) * 1.4) 0 calc(var(--u) * 0.6); font-family: var(--f-title); font-weight: 400; color: var(--yellow); }
 .hf-theme small { font-family: inherit; color: #9fb8e8; font-size: 0.75em; }
 .hf-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--u) * 30), 1fr)); gap: calc(var(--u) * 0.7); }
@@ -11609,7 +11626,7 @@ window.PA = window.PA || {};
         <div class="camp-top">
           <div class="cur" title="Points de prestige"><i>✦</i>${fmt(meta.balance)}</div>
           <div class="seg" title="Chaque difficulté a sa propre progression">${Object.keys(C.difficulties).map(id => `<button data-action="diff" data-arg="${id}" class="d-${id}${id === meta.difficulty ? ' on' : ''}">${C.difficulties[id].name}</button>`).join('')}</div>
-          <div class="side">${meta.totalEarned > meta.balance ? `<span class="muted">Total gagné : ${fmt(meta.totalEarned)} ✦</span>` : ''}${PA.HautsFaits ? `<button data-action="tab" data-arg="${tab === 'hf' ? 'play' : 'hf'}" class="hf-bouton" title="Hauts faits">${tab === 'hf' ? '✕' : `🏆 ${PA.HautsFaits.nb()}`}</button>` : ''}<button data-action="musique" class="son${PA.Music.on ? '' : ' off'}" title="Musique : oui / non">♪</button><button data-action="bruitages" class="son${PA.Music.fx ? '' : ' off'}" title="Effets sonores : oui / non">🔊</button><button data-action="tab" data-arg="${tab === 'aide' ? 'play' : 'aide'}" title="Aide et réglages">${tab === 'aide' ? '✕' : '?'}</button></div>
+          <div class="side">${meta.totalEarned > meta.balance ? `<span class="muted">Total gagné : ${fmt(meta.totalEarned)} ✦</span>` : ''}${PA.HautsFaits ? `<button data-action="tab" data-arg="${tab === 'hf' ? 'play' : 'hf'}" class="hf-bouton" title="Hauts faits">${tab === 'hf' ? '✕' : '🏆'}</button>` : ''}<button data-action="musique" class="son${PA.Music.on ? '' : ' off'}" title="Musique : oui / non">♪</button><button data-action="bruitages" class="son${PA.Music.fx ? '' : ' off'}" title="Effets sonores : oui / non">🔊</button><button data-action="tab" data-arg="${tab === 'aide' ? 'play' : 'aide'}" title="Aide et réglages">${tab === 'aide' ? '✕' : '?'}</button></div>
         </div>
         <div class="camp-body ${tab === 'play' ? '' : 'list'}">${tab === 'aide' ? `<div>${aide}</div>` : bodies[tab]}</div>
         <nav class="tabs">${tabs}</nav>

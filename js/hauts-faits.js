@@ -245,6 +245,9 @@ window.PA = window.PA || {};
       const o = this.file.shift();
       if (!o) { this.enCours = false; return; }
       this.enCours = true;
+      // En pleine partie : le trophée sur le terrain plutôt que le bandeau du haut.
+      const jeu = PA.Game, st = document.getElementById('stage');
+      if (jeu && jeu.battle && st && !document.body.classList.contains('in-menu')) return this.effetPartie(o, st, jeu.battle);
       const hote = document.body;
       const el = document.createElement('div');
       el.className = 'hf-bandeau';
@@ -254,6 +257,25 @@ window.PA = window.PA || {};
       requestAnimationFrame(() => el.classList.add('on'));
       setTimeout(() => el.classList.remove('on'), 3600);
       setTimeout(() => { el.remove(); this.suivant(); }, 4100);
+    },
+
+    // En partie : un grand trophée jaillit au milieu du terrain, rayons dorés qui tournent, pluie de confettis.
+    effetPartie(o, st, b) {
+      const h = o.h, ico = ICONES[h.t] || '🏆', gain = o.gain ? `<em>+${o.gain} ✦</em>` : '';
+      const titre = `Haut fait${h.secret ? ' secret' : ''} !`;
+      const el = document.createElement('div');
+      const W = PA.CONFIG.world.width;
+      const rand = (a, c) => a + Math.random() * (c - a);
+      const OR = ['#ffd23f', '#fff3b0', '#ffb44a', '#ffffff', '#f2a91f'];
+      const duree = 3400;
+      el.className = 'hf-fx hf-trophee';
+      el.innerHTML = `<div class="rayons"></div><i>${ico}</i><div class="txt"><small>${titre}</small><b>${h.nom}</b><span>${h.desc}</span>${gain}</div>`;
+      for (let i = 0; i < 70; i++) b.particles.push({ x: rand(0, W), y: rand(-60, 40), vx: rand(-40, 40), vy: rand(60, 220), life: rand(1.4, 2.6), max: 2.6, color: OR[i % 5], size: rand(2.5, 5) });
+      st.appendChild(el);
+      if (PA.Sons && PA.Sons.evolution && PA.Music && PA.Music.fx) { try { PA.Sons.evolution(0); } catch (e) { /* ignore */ } }
+      requestAnimationFrame(() => el.classList.add('on'));
+      setTimeout(() => el.classList.add('fin'), duree - 500);
+      setTimeout(() => { el.remove(); this.suivant(); }, duree);
     },
 
     // L'onglet du camp : une grille par thème ; les secrets restent « ??? » tant qu'ils ne sont pas obtenus.

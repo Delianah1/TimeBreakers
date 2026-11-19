@@ -1,10 +1,10 @@
 /* =========================================================================
    SERVICE WORKER : rend le jeu installable et jouable hors ligne.
-   StratÃ©gie Â« rÃ©seau d'abord Â» : en ligne on prend toujours la derniÃ¨re
+   StratÃƒÂ©gie Ã‚Â« rÃƒÂ©seau d'abord Ã‚Â» : en ligne on prend toujours la derniÃƒÂ¨re
    version (et on la range dans le cache) ; hors ligne on sert le cache.
    Changer VERSION vide l'ancien cache.
    ========================================================================= */
-const VERSION = 'timebreakers-v32';
+const VERSION = 'timebreakers-v33';
 const FICHIERS = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'icones/icone-192.png', 'icones/icone-512.png', 'icones/icone-180.png', 'icones/icone-maskable-512.png',
