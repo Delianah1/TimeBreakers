@@ -255,7 +255,8 @@ window.PA = window.PA || {};
         }
         const cost = b.unitCost(units[i]);
         btn.querySelector('.cost').textContent = court(cost);
-        const interdit = b.defi && b.defi.regle.id === 'solo' && i !== b.defi.solo;   // défi « Une seule unité »
+        // défi « Une seule unité » ; !! : sans défi, toggle(…, undefined) inverserait la classe à chaque mise à jour
+        const interdit = !!(b.defi && b.defi.regle.id === 'solo' && i !== b.defi.solo);
         btn.classList.toggle('cant', run.gold < cost || interdit);
         btn.disabled = b.over;
       });
