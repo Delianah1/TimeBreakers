@@ -692,7 +692,9 @@ window.PA = window.PA || {};
 
     // haut fait : on souffle dans une corne (souffle, une note brève puis une longue, une quinte plus haut)
     corne() {
-      if (!this.pret()) return;
+      // muette dès que les sons OU la musique sont coupés (ou leur volume à zéro)
+      const M = PA.Music;
+      if (!this.pret() || !M.on || !(M.fxVol > 0) || !(M.volume > 0)) return;
       const B = this.banc(), t = B.ctx.currentTime + 0.05;
       bruit(B, { t, d: 0.35, type: 'bandpass', f0: 700, f1: 1100, q: 1.2, vol: 0.06, gonfle: 0.12 });
       const note = (t0, f, d, v) => {
