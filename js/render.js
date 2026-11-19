@@ -2014,7 +2014,7 @@ window.PA = window.PA || {};
     particles(ctx, b) {
       const nouveau = PA.Fx && PA.Fx.actif();   // un autre style d'effets remplace les carrés et les anneaux d'avant
       for (const p of b.particles) {
-        if (nouveau && !p.bolt) continue;
+        if (nouveau && !p.bolt && !p.fete) continue;   // fete : confettis des hauts faits, toujours affichés
         const a = Math.max(0, p.life / p.max);
         if (p.ring) {
           ctx.strokeStyle = p.color; ctx.globalAlpha = a; ctx.lineWidth = 3;
