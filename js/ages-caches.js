@@ -3,13 +3,14 @@
    Même principe que le Magma (js/magma.js) : on les trouve en REFUSANT D'ÉVOLUER.
    Tu restes un âge en arrière pendant que l'ennemi avance, et le décor se dérègle :
      - Atlantide  (place de l'Antiquité, n° 3) : tu es encore à l'âge de pierre face à l'Antiquité.
-                   La mer monte, puis un raz-de-marée traverse le terrain (il ralentit tout le monde).
+                   La mer du fond envahit le désert, noie les îles, puis submerge le terrain (elle ralentit tout le monde).
      - Âge de glace (place du Médiéval, n° 4) : tu es encore à l'Antiquité face au Médiéval.
-                   L'hiver tombe, puis un blizzard traverse le terrain (il gèle tout le monde).
-     - Âge néon   (place du Moderne, n° 7) : tu es encore à la Vapeur face au Moderne.
-                   Les lumières grésillent, puis une surtension traverse le terrain (elle paralyse tout le monde).
-   1er niveau de l'âge ennemi : les signes ; 2e : ça s'aggrave ; 3e : la vague arrive après 14 s,
-   et le bouton Évoluer devient « Plonger… ». Un âge déjà découvert se réveille un niveau plus tôt.
+                   Une avalanche descend des montagnes, ensevelit les collines, puis le terrain (elle gèle tout le monde).
+     - Âge néon   (place des Héros, n° 8) : tu es encore au Moderne face aux Héros.
+                   La ville s'allume en néon, puis la surtension déborde sur la rue (elle paralyse tout le monde).
+   1er niveau de l'âge ennemi : les signes ; 2e : ça s'aggrave ; 3e : après 14 s, le phénomène déborde du
+   fond du décor et recouvre tout le terrain d'un coup (LISTE[].fond), et le bouton Évoluer devient
+   « Plonger… ». Un âge déjà découvert se réveille un niveau plus tôt.
    Évoluer normalement pendant le phénomène le rendort pour la partie.
 
    Plonger : run.caches[clé] = true. L'âge remplace l'âge d'origine pour toute la run (toi et l'ennemi),
@@ -27,7 +28,7 @@ window.PA = window.PA || {};
 (function () {
   const C = PA.CONFIG, W = C.world.width, GROUND = C.world.groundY, PF = C.world.baseWidth, EF = W - C.world.baseWidth;
   const rand = (a, b) => a + Math.random() * (b - a);
-  const ANT = C.ages[2], MED = C.ages[3], MOD = C.ages[6];
+  const ANT = C.ages[2], MED = C.ages[3], HER = C.ages[7];
 
   // ------------------------------------------------------------------ les trois âges
   const ATLANTIDE = {
@@ -82,27 +83,28 @@ window.PA = window.PA || {};
 
   const NEON = {
     id: 'neon', name: 'Âge néon', to: 'à l’âge néon', short: 'Néon', cache: true,
-    baseHp: MOD.baseHp,
+    // Il prend la place des Héros (après le Moderne) : mêmes chiffres que les Héros.
+    baseHp: HER.baseHp,
     base: { look: 'neon', height: 160 },
     palette: { skyTop: '#0a0618', skyBottom: '#3a1450', hills: '#1a1030', hillsFar: '#2a1a48', ground: '#16121e', groundTop: '#241c30' },
     units: [
-      { id: 'cyber-ninja', name: 'Cyber-ninja', kind: 'melee', cost: 12200, hp: 7260, dmg: 896, interval: 0.9, reach: 10, speed: 62, train: 1.5, w: 24, h: 46, son: 'sapeur',
+      { id: 'cyber-ninja', name: 'Cyber-ninja', kind: 'melee', cost: 36400, hp: 16000, dmg: 1790, interval: 0.8, reach: 10, speed: 68, train: 1.5, w: 24, h: 46, son: 'sapeur',
         look: { body: 'human' }, desc: 'Lame néon, très rapide' },
-      { id: 'hacker', name: 'Hacker', kind: 'ranged', cost: 18300, hp: 4690, dmg: 800, interval: 1.4, range: 230, speed: 48, train: 1.6, w: 24, h: 46, son: 'tireur',
+      { id: 'hacker', name: 'Hacker', kind: 'ranged', cost: 54000, hp: 10300, dmg: 1600, interval: 1.2, range: 230, speed: 52, train: 1.6, w: 24, h: 46, son: 'tireur',
         look: { body: 'human' }, projectile: { look: 'code', speed: 900 }, desc: 'Ses virus figent un instant' },
-      { id: 'robot-emeute', name: 'Robot anti-émeute', kind: 'melee', cost: 85000, hp: 24800, dmg: 2080, interval: 1.5, reach: 16, speed: 42, train: 3.5, w: 48, h: 70, son: 'marcheur',
+      { id: 'robot-emeute', name: 'Robot anti-émeute', kind: 'melee', cost: 256000, hp: 50000, dmg: 4160, interval: 1.3, reach: 16, speed: 44, train: 3.5, w: 48, h: 70, son: 'marcheur',
         carapace: true, look: { body: 'robot' }, desc: 'Blindé : moitié moins de dégâts des tirs' },
-      { id: 'drone-neon', name: 'Drone néon', kind: 'ranged', elite: true, cost: 32400, hp: 14000, dmg: 700, interval: 0.9, range: 140, speed: 50, train: 2.5, w: 36, h: 44, son: 'drone',
-        look: { body: 'drone' }, projectile: { look: 'eclair-neon', speed: 900, splash: 40 }, desc: 'Arcs électriques en zone qui paralysent' },
+      { id: 'drone-neon', name: 'Drone néon', kind: 'ranged', elite: true, cost: 230000, hp: 52000, dmg: 3800, interval: 1.1, range: 140, speed: 50, train: 3.0, w: 36, h: 44, son: 'drone',
+        look: { body: 'drone' }, projectile: { look: 'eclair-neon', speed: 900, splash: 45 }, desc: 'Arcs électriques en zone qui paralysent' },
     ],
     turrets: [
-      { id: 'tourelle-neon', name: 'Tourelle néon', cost: 122000, dmg: 479, interval: 0.25, range: 380, proj: 'laser-neon', projSpeed: 1100, son: 'tourelle-laser' },
-      { id: 'canon-plasma', name: 'Canon à plasma', cost: 176000, dmg: 4470, interval: 1.8, range: 460, proj: 'plasma-neon', projSpeed: 900, son: 'canon-ions' },
-      { id: 'tour-surtension', name: 'Tour à surtension', cost: 243000, dmg: 3190, interval: 1.8, range: 480, proj: 'boule-neon', projSpeed: 420, splash: 70, arc: true, son: 'tour-tesla' },
+      { id: 'tourelle-neon', name: 'Tourelle néon', cost: 364000, dmg: 852, interval: 0.2, range: 420, proj: 'laser-neon', projSpeed: 1100, son: 'tourelle-laser' },
+      { id: 'canon-plasma', name: 'Canon à plasma', cost: 526000, dmg: 9580, interval: 1.6, range: 480, proj: 'plasma-neon', projSpeed: 900, son: 'canon-ions' },
+      { id: 'tour-surtension', name: 'Tour à surtension', cost: 729000, dmg: 5520, interval: 1.8, range: 460, proj: 'boule-neon', projSpeed: 420, splash: 80, arc: true, son: 'tour-tesla' },
     ],
-    special: { id: 'surtension', name: 'Surtension', cooldown: 40, count: 14, duration: 2.5, dmg: 6920, radius: 55, look: 'foudre-neon', speed: 900,
+    special: { id: 'surtension', name: 'Surtension', cooldown: 40, count: 12, duration: 2.5, dmg: 15400, radius: 60, look: 'foudre-neon', speed: 900,
       desc: 'Des éclairs néon frappent les ennemis' },
-    champion: Object.assign({}, MOD.champion, { id: 'robot-geant', name: 'Robot géant' }),
+    champion: Object.assign({}, HER.champion, { id: 'robot-geant', name: 'Robot géant' }),
   };
 
   // Les tirs qui font plus que des dégâts (unités et tourelles, des deux camps).
@@ -114,9 +116,9 @@ window.PA = window.PA || {};
 
   // ------------------------------------------------------------------ les phénomènes
   const LISTE = [
-    { cle: 'atlantide', idx: 2, age: ATLANTIDE, ico: '🌊', cls: 'abysses', hf: 'enfant-abysses',
+    { cle: 'atlantide', idx: 2, age: ATLANTIDE, ico: '🌊', cls: 'abysses', hf: 'enfant-abysses', fond: true,
       texte: 'Plonger dans les abysses',
-      alerte: 'La mer se retire… un raz-de-marée arrive !',
+      alerte: 'La mer gronde au loin… elle va tout engloutir !',
       arrivee: 'La mer a tout englouti : plonge dans les abysses !',
       decouverte: 'Âge caché découvert : l’Atlantide !',
       couleurs: ['#bfefff', '#4ad8e8'], degats: 0.3,
@@ -133,10 +135,10 @@ window.PA = window.PA || {};
       ],
       origine: 'Quatorze tridents de bronze s’abattent sur la ligne ennemie.' },
 
-    { cle: 'glace', idx: 3, age: GLACE, ico: '❄️', cls: 'givre', hf: 'enfant-givre',
+    { cle: 'glace', idx: 3, age: GLACE, ico: '❄️', cls: 'givre', hf: 'enfant-givre', fond: true,
       texte: 'Plonger dans l’hiver éternel',
-      alerte: 'Le vent glacé se lève… le blizzard arrive !',
-      arrivee: 'Le blizzard a tout gelé : plonge dans l’hiver éternel !',
+      alerte: 'La montagne craque… l’avalanche arrive !',
+      arrivee: 'L’avalanche a tout enseveli : plonge dans l’hiver éternel !',
       decouverte: 'Âge caché découvert : l’Âge de glace !',
       couleurs: ['#ffffff', '#bfe6ff'], degats: 0.25,
       touche(b, u) { u.chill = { t: 6, k: u.isChampion ? 0.35 : 0.6 }; },
@@ -152,7 +154,7 @@ window.PA = window.PA || {};
       ],
       origine: 'Trente grêlons géants s’abattent sur les ennemis.' },
 
-    { cle: 'neon', idx: 6, age: NEON, ico: '⚡', cls: 'neon', hf: 'enfant-reseau',
+    { cle: 'neon', idx: 7, age: NEON, ico: '⚡', cls: 'neon', hf: 'enfant-reseau', fond: true,
       texte: 'Plonger dans le réseau',
       alerte: 'Les lumières grésillent… une surtension arrive !',
       arrivee: 'La surtension a tout grillé : plonge dans le réseau !',
@@ -230,7 +232,23 @@ window.PA = window.PA || {};
       if (P.etat === 'attente') {
         P.t -= dt;
         if (P.t <= 3 && !P.alerte) { P.alerte = true; b.game.toast(P.c.alerte, 'big'); }
-        if (P.t <= 0) { P.etat = 'vague'; P.x = EF - 10; b.shake = 0.5; }
+        if (P.t <= 0) { P.etat = 'vague'; P.x = EF - 10; P.k = 0; b.shake = 0.5; }
+        return;
+      }
+      // Le phénomène vient du fond du décor : il déborde des collines de devant et recouvre
+      // tout le terrain d'un coup (P.k de 0 à 1), puis frappe toutes les unités.
+      if (P.etat === 'vague' && P.c.fond) {
+        P.k = Math.min(1, P.k + dt / 2.4);
+        b.shake = Math.max(b.shake, 0.15);
+        if (Math.random() < dt * 40) b.particles.push({ x: rand(PF, EF), y: GROUND - rand(10, 60), vx: rand(-40, 40), vy: rand(-160, -40), life: 0.7, max: 0.7, color: P.c.couleurs[Math.random() < 0.5 ? 0 : 1], size: rand(2, 4) });
+        if (P.k < 1) return;
+        for (const list of [b.pu, b.eu]) for (const u of list) {
+          if (u.dead || u.cache || u.alt > 0) continue;
+          b.damageUnit(u, u.maxHp * (u.isChampion ? 0.1 : P.c.degats), false, 'pouvoir');
+          if (!u.dead) P.c.touche(b, u);
+          b.spark(u.x, GROUND - 14, P.c.couleurs[1], 6);
+        }
+        P.etat = 'arrivee'; P.x = PF + 10; b.shake = 0.6; b.game.toast(P.c.arrivee, 'big');
         return;
       }
       if (P.etat === 'vague') {

@@ -269,31 +269,58 @@
     for (let i = 0; i < 40; i++) { const k = (T * 0.07 + i * 0.37) % 1; ctx.beginPath(); ctx.arc((i * 131 + Math.sin(T * 0.8 + i) * 24 + T * 10) % W, k * GROUND, 1.2 + (i % 3) * 0.6, 0, TAU); ctx.fill(); }
   });
 
-  /* ------------------------------------------------- le phénomène : l'hiver tombe */
+  /* ------------------------------------------------- le phénomène : l'avalanche */
+  // Elle part des montagnes du décor du Médiéval et descend vers nous :
+  //   stade 1 : la neige se détache des sommets et couvre le pied des montagnes ;
+  //   stade 2 : l'avalanche a enseveli les collines du fond, jusqu'aux collines de devant ;
+  //   stade 3 : elle passe par-dessus les collines de devant et ensevelit le terrain.
   A.phen.glace = function (ctx, b, P, T) {
-    const s = P.s;
-    ctx.fillStyle = `rgba(220,240,255,${0.08 * s})`; ctx.fillRect(0, 0, W, GROUND);
-    // la neige recouvre le sol
-    ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.moveTo(-40, GROUND + 3);
-    for (let x = -40; x <= W + 40; x += 18) ctx.lineTo(x, GROUND - s * 2 - Math.abs(Math.sin(x * 0.05)) * s * 1.5);
-    ctx.lineTo(W + 40, GROUND + 3); ctx.closePath(); ctx.fill();
+    const s = P.s, et = P.etat;
+    const AVANT = [430, 488, 600, 600];
+    const m = b._aval || (b._aval = { a: AVANT[Math.max(0, s - 1)], t: T });
+    const dt = Math.min(0.1, Math.max(0, T - m.t)); m.t = T;
+    m.a += (AVANT[Math.min(s, 3)] - m.a) * Math.min(1, dt * 0.35);
+    const sol = et === 'arrivee' ? 1 : et === 'vague' ? (P.k || 0) : 0;
+    const h2 = x => 564 - Math.sin(x * 0.006 + 5.2) * 16 - Math.sin(x * 0.018 + 0.7) * 6;
+    const haut = x => 418 + Math.sin(x * 0.011 + 0.6) * 14 + Math.sin(x * 0.037 + 2) * 6;
+    const lim = x => { const y = h2(x) + 2; return y + (GROUND + 12 - y) * Math.min(1, sol * (1 + Math.sin(x * 0.02 + 1) * 0.12)); };
+    const bord = x => Math.min(m.a + Math.sin(x * 0.017 + T * 0.7) * 9 + Math.sin(x * 0.05 - T) * 4, lim(x));
+    const pas = 14;
+    ctx.fillStyle = `rgba(220,240,255,${0.07 * s})`; ctx.fillRect(0, 0, W, GROUND);
+    // coulées de neige qui dévalent les montagnes
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    for (let i = 0; i < 6 + s * 4; i++) {
+      const x = 40 + (i * 167) % (W - 80), u = (T * 0.35 + i * 0.29) % 1, y = 360 + u * (Math.min(m.a, h2(x)) - 360);
+      ctx.globalAlpha = 0.85 * (1 - u * 0.5); ctx.beginPath(); ctx.ellipse(x + u * 20, y, 10 + u * 14, 5 + u * 6, 0, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // la masse de neige : du flanc des montagnes jusqu'au front de l'avalanche
+    if (m.a > 432) {
+      const g = ctx.createLinearGradient(0, 400, 0, Math.max(470, sol > 0 ? GROUND : m.a));
+      g.addColorStop(0, 'rgba(250,253,255,0.9)'); g.addColorStop(0.6, 'rgba(240,248,255,0.95)'); g.addColorStop(1, 'rgba(225,238,250,0.97)');
+      ctx.fillStyle = g; ctx.beginPath();
+      for (let x = -40; x <= W + 40; x += pas) ctx.lineTo(x, haut(x));
+      for (let x = W + 40; x >= -40; x -= pas) ctx.lineTo(x, Math.max(haut(x) + 4, bord(x)));
+      ctx.closePath(); ctx.fill();
+      // ombres bleutées dans la neige
+      ctx.strokeStyle = 'rgba(120,160,210,0.35)'; ctx.lineWidth = 2; ctx.beginPath();
+      for (let i = 0; i < 16; i++) { const x = (i * 83) % W, y = haut(x) + 14 + (i * 29) % Math.max(10, m.a - 440); if (y < bord(x) - 6) { ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 16, y - 4, x + 34, y + 2); } }
+      ctx.stroke();
+      // le nuage de poudreuse au front de l'avalanche
+      for (let x = -20; x <= W + 20; x += 36) {
+        const y = bord(x); if (y > GROUND + 8) continue;
+        const r = 16 + Math.abs(Math.sin(x * 0.07 + T * 0.9)) * 18 + (et === 'vague' ? 14 : 0);
+        ctx.fillStyle = `rgba(255,255,255,${et === 'vague' ? 0.75 : 0.55})`; ctx.beginPath(); ctx.arc(x + Math.sin(T * 1.3 + x) * 6, y - r * 0.4, r, 0, TAU); ctx.fill();
+      }
+    }
+    // pendant le débordement : la poudreuse jaillit au-dessus des collines de devant
+    if (et === 'vague') {
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      for (let i = 0; i < 40; i++) { const x = (i * 33.7) % (W + 40) - 20, u = (T * 1.4 + i * 0.21) % 1; ctx.globalAlpha = 0.8 * (1 - u); ctx.beginPath(); ctx.arc(x, h2(x) - u * 90, 10 + u * 26, 0, TAU); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
     // flocons, de plus en plus serrés et de travers
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     for (let i = 0; i < 40 * s; i++) { const k = (T * (0.08 + s * 0.03) + i * 0.173) % 1; ctx.beginPath(); ctx.arc((i * 97 - T * 40 * s + Math.sin(T + i) * 10) % (W + 80) + 40, k * GROUND, 1 + (i % 3) * 0.7, 0, TAU); ctx.fill(); }
-    // le blizzard
-    if (P.x != null) {
-      const x0 = P.x, x1 = W - PA.CONFIG.world.baseWidth + 10, c = P.fin;
-      ctx.fillStyle = `rgba(235,248,255,${0.9 * (1 - c * 0.6)})`; ctx.beginPath(); ctx.moveTo(x0, GROUND + 4);
-      for (let x = x0; x <= x1; x += 14) ctx.lineTo(x, GROUND - 7 - Math.abs(Math.sin(x * 0.04)) * 4);
-      ctx.lineTo(x1, GROUND + 4); ctx.closePath(); ctx.fill();
-      if (P.etat === 'vague') {
-        const g = ctx.createLinearGradient(x0 - 30, 0, x0 + 160, 0);
-        g.addColorStop(0, 'rgba(240,250,255,0)'); g.addColorStop(0.25, 'rgba(240,250,255,0.85)'); g.addColorStop(1, 'rgba(240,250,255,0.25)');
-        ctx.fillStyle = g; ctx.fillRect(x0 - 30, GROUND - 200, 190, 200);
-        ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.4; ctx.beginPath();
-        for (let i = 0; i < 30; i++) { const y = GROUND - (i * 37 + T * 90) % 200, x = x0 + (i * 53) % 170; ctx.moveTo(x, y); ctx.lineTo(x - 22, y + 4); }
-        ctx.stroke();
-      }
-    }
   };
 })();

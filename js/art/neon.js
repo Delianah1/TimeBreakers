@@ -1,11 +1,11 @@
 /* =========================================================================
    GRAPHISMES — ÂGE CACHÉ DU NÉON (js/ages-caches.js pour les règles)
    Ville de nuit, gratte-ciel à enseignes roses et turquoise, sol en grille lumineuse.
-   Art.phen.neon : les lumières qui grésillent sur le décor moderne, puis la surtension.
+   Art.phen.neon : sur le décor des Héros, la ville passe au néon, puis la surtension déborde sur la rue.
    ========================================================================= */
 (function () {
   const A = PA.Art, K = A.kit;
-  const { W, GROUND, TAU, INK, now, blob, limb, dk, poly, line, rect, disc, oval, figure, swing, aim, halo, backdrop, sky, hills } = K;
+  const { W, H, GROUND, TAU, INK, now, blob, limb, dk, poly, line, rect, disc, oval, figure, swing, aim, halo, backdrop, sky, hills } = K;
   const ROSE = '#ff3ad8', CYAN = '#3afff0', VIOLET = '#8a3aff', JAUNE = '#ffe83a', NUIT = '#14101e', METAL = '#3a3448', METAL_L = '#5a5470';
   A.phen = A.phen || {};
 
@@ -211,24 +211,52 @@
     for (let i = 0; i < 30; i++) { const k = (T * 0.5 + i * 0.37) % 1; ctx.fillRect((i * 151) % W, k * GROUND, 1, 10); }
   });
 
-  /* ------------------------------------------------- le phénomène : la surtension */
+  /* ------------------------------------------------- le phénomène : la ville passe au néon */
+  // Il se joue sur le décor des Héros (la grande ville) :
+  //   stade 1 : la nuit tombe, les tours du fond s'allument en néon et grésillent ;
+  //   stade 2 : toute la ville est en néon, des arcs sautent d'une tour à l'autre ;
+  //   stade 3 : la surtension déborde de la ville et recouvre la rue d'une grille électrique.
   A.phen.neon = function (ctx, b, P, T) {
-    const s = P.s;
-    // la nuit tombe et les lumières grésillent
-    ctx.fillStyle = `rgba(20,0,40,${0.12 * s})`; ctx.fillRect(0, 0, W, GROUND);
-    for (let i = 0; i < 2 + s * 2; i++) { const on = Math.sin(T * (3 + i) + i * 1.7) > 0.2 || Math.random() < 0.1; if (!on) continue; const x = 60 + i * 157 % (W - 120), y = 280 + (i * 53) % 160; neon(ctx, [x, y, x + 50, y], i % 2 ? ROSE : CYAN, 2.2); }
-    if (s >= 2 && Math.random() < 0.08 * s) zigzag(ctx, Math.random() * W, 0, Math.random() * W, 200 + Math.random() * 200, Math.random() < 0.5 ? ROSE : CYAN, 8, 40);
-    neon(ctx, [-40, GROUND - 1, W + 40, GROUND - 1], `rgba(58,255,240,${0.3 + 0.2 * s})`, 1.4);
-    // la surtension
-    if (P.x != null) {
-      const x0 = P.x, x1 = W - PA.CONFIG.world.baseWidth + 10, c = P.fin;
-      ctx.globalAlpha = 1 - c * 0.7;
-      for (let x = x0; x < x1; x += 30) neon(ctx, [x, GROUND - 2, x + 18, GROUND - 2 - ((x / 30 | 0) % 2) * 3], ROSE, 1.6);
-      ctx.globalAlpha = 1;
-      if (P.etat === 'vague') {
-        halo(ctx, x0, GROUND - 30, 70, '58,255,240', 0.6);
-        for (let i = 0; i < 4; i++) zigzag(ctx, x0 + (Math.random() - 0.5) * 20, GROUND - 120 - Math.random() * 60, x0 + (Math.random() - 0.5) * 30, GROUND, i % 2 ? ROSE : CYAN, 6, 20);
+    const s = P.s, et = P.etat;
+    const sol = et === 'arrivee' ? 1 : et === 'vague' ? (P.k || 0) : 0;
+    const hash = n => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+    const m = b._neon || (b._neon = { nuit: 0.12 * Math.max(0, s - 1), t: T });
+    const dt = Math.min(0.1, Math.max(0, T - m.t)); m.t = T;
+    m.nuit += (0.18 * s + 0.12 * sol - m.nuit) * Math.min(1, dt * 0.4);
+    // la nuit tombe sur la ville
+    ctx.fillStyle = `rgba(24,6,48,${m.nuit})`; ctx.fillRect(0, 0, W, H);
+    const panne = i => Math.sin(T * (2 + (i % 5)) + i * 1.7) < -0.85 || Math.random() < 0.015 * s;
+    // néons des tours du fond (bas des tours lointaines : y 400 à 500)
+    for (let i = 0; i < 6 + s * 6; i++) {
+      if (panne(i)) continue;
+      const x = 20 + hash(i) * (W - 40), y = 400 + hash(i + 40) * 100, c = i % 2 ? ROSE : CYAN;
+      if (i % 3 === 0) neon(ctx, [x, y, x, y + 30 + hash(i + 3) * 30], c, 2);
+      else neon(ctx, [x, y, x + 24 + hash(i + 9) * 30, y], c, 2);
+    }
+    // stade 2 : les immeubles de devant aussi, et des arcs entre les tours
+    if (s >= 2) {
+      for (let i = 0; i < 14; i++) {
+        if (panne(i + 100)) continue;
+        const x = 30 + hash(i + 200) * (W - 60), y = 560 + hash(i + 300) * 30, c = i % 2 ? CYAN : ROSE;
+        neon(ctx, [x, y, x + 30 + hash(i + 7) * 40, y], c, 2.4);
+      }
+      if (Math.random() < 0.06 * s) { const x0 = Math.random() * W, x1 = x0 + (Math.random() - 0.5) * 300; zigzag(ctx, x0, 380 + Math.random() * 60, x1, 380 + Math.random() * 60, Math.random() < 0.5 ? ROSE : CYAN, 8, 18); }
+    }
+    // stade 3 : la ville bourdonne, et la surtension descend sur la rue
+    if (s >= 3) {
+      halo(ctx, W / 2, 470, 520, '255,58,216', 0.08 + 0.04 * Math.sin(T * 6) + 0.25 * sol);
+      if (sol > 0) {
+        const y0 = 520, y1 = y0 + (GROUND + 12 - y0) * sol;
+        const g = ctx.createLinearGradient(0, y0, 0, y1);
+        g.addColorStop(0, 'rgba(40,10,70,0)'); g.addColorStop(1, 'rgba(40,10,70,0.55)');
+        ctx.fillStyle = g; ctx.fillRect(0, y0, W, y1 - y0);
+        // la grille qui avance vers nous
+        for (let x = -40; x <= W + 40; x += 48) neon(ctx, [W / 2 + (x - W / 2) * 0.55, y0, x, y1], 'rgba(255,58,216,0.55)', 1.2);
+        for (let k = 0; k < 6; k++) { const y = y0 + (y1 - y0) * (k / 5) ** 1.6; neon(ctx, [-40, y, W + 40, y], 'rgba(58,255,240,0.55)', 1.2); }
+        neon(ctx, [-40, y1, W + 40, y1], CYAN, 3);
+        if (et === 'vague') for (let i = 0; i < 3; i++) { const x = Math.random() * W; zigzag(ctx, x, 380 + Math.random() * 80, x + (Math.random() - 0.5) * 60, y1, i % 2 ? ROSE : CYAN, 7, 24); }
       }
     }
+    neon(ctx, [-40, GROUND - 1, W + 40, GROUND - 1], `rgba(58,255,240,${0.2 + 0.15 * s + 0.4 * sol})`, 1.4 + sol);
   };
 })();

@@ -2,9 +2,9 @@
    ÂGE CACHÉ DU MAGMA
    On ne le voit nulle part tant qu'on ne l'a pas trouvé. Pour y entrer, il faut REFUSER D'ÉVOLUER :
    rester au Jurassique pendant les niveaux de l'âge de pierre réveille le volcan du décor.
-     - 1er niveau de Pierre (N6) : le volcan fume fort, la terre tremble ;
-     - 2e (N7) : la lave descend les flancs, des braises tombent ;
-     - 3e (N8) : la lave arrive sur le terrain (elle brûle les deux camps), et le bouton Évoluer
+     - 1er niveau de Pierre (N6) : le volcan entre en éruption, ses bombes de lave incendient le fond du paysage ;
+     - 2e (N7) : la lave descend les flancs, les bombes tombent partout, jusqu'aux collines de devant ;
+     - 3e (N8) : les bombes tombent sur le terrain et la lave le recouvre (elle brûle les deux camps), et le bouton Évoluer
        devient « Plonger dans le magma ».
    Une fois l'âge découvert (meta.magma), le volcan se réveille un niveau plus tôt.
    Évoluer normalement avant la fin rendort le volcan pour la partie.
@@ -162,21 +162,71 @@ window.PA = window.PA || {};
     },
 
     // ------------------------------------------------------------ dessin
-    // Par-dessus le décor : le réveil du volcan (au fond), puis la coulée sur la piste.
+    // Par-dessus le décor : le volcan entre en éruption et crache des bombes de lave.
+    //   stade 1 : elles tombent sur l'arrière du paysage (les collines du fond) ;
+    //   stade 2 : partout, jusqu'aux collines de devant ;
+    //   stade 3 : sur le terrain, et la coulée le recouvre.
     decor(ctx, b, t) {
       const s = b.volcan, T = performance.now() / 1000, A = PA.Art, Kit = A && A.kit;
-      if (s && Kit) {
-        // fumée plus épaisse, coulées sur les flancs, ciel qui rougit
-        Kit.puffs(ctx, 930, 248, { n: 6 + s * 2, speed: 0.09, rise: 170 + s * 30, drift: 130, r0: 16, r1: 50 + s * 12, rgb: '70,56,60', a: 0.45 + s * 0.08 });
-        Kit.halo(ctx, 930, 250, 60 + s * 30, '255,110,40', 0.35 + s * 0.12 + 0.08 * Math.sin(T * 3));
-        if (s >= 2 && Kit.couleesVolcan) Kit.couleesVolcan(ctx, 930, 252, 450, s >= 3 ? 1 : 0.55, T);
-        if (s >= 2) {
-          ctx.fillStyle = `rgba(200,60,20,${0.06 * s})`; ctx.fillRect(0, 0, W, GROUND);
-          for (let i = 0; i < 6 * s; i++) { const k = (T * 0.12 + i * 0.173) % 1; ctx.globalAlpha = 1 - k; Kit.disc(ctx, (i * 211 + T * 20) % W, k * GROUND, 1.6, i % 2 ? '#ff8a3c' : '#ffd36a'); }
-          ctx.globalAlpha = 1;
-        }
-      }
       const L = b.lave;
+      if (s && Kit) {
+        const CX = 930, CY = 252;
+        // collines du décor (js/art/jurassique.js)
+        const h1 = x => 500 - Math.sin(x * 0.0046 + 2.2) * 26 - Math.sin(x * 0.012 + 0.4) * 9;
+        const h2 = x => 560 - Math.sin(x * 0.0062 + 0.9) * 18 - Math.sin(x * 0.019 + 3) * 6;
+        const hash = n => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+        // ciel qui rougit, fumée épaisse, coulées sur les flancs
+        ctx.fillStyle = `rgba(190,50,20,${0.05 + 0.05 * s})`; ctx.fillRect(0, 0, W, GROUND);
+        Kit.puffs(ctx, CX, CY - 4, { n: 7 + s * 3, speed: 0.1, rise: 190 + s * 40, drift: 140, r0: 18, r1: 56 + s * 14, rgb: '60,46,50', a: 0.55 + s * 0.08 });
+        Kit.halo(ctx, CX, CY, 80 + s * 34, '255,110,40', 0.45 + s * 0.12 + 0.1 * Math.sin(T * 5));
+        if (Kit.couleesVolcan) Kit.couleesVolcan(ctx, CX, CY, 450, [0, 0.4, 0.75, 1][s], T);
+        // la fontaine de lave au cratère
+        for (let i = 0; i < 10 + s * 6; i++) {
+          const p = 0.9 + (i % 4) * 0.25, u = ((T + i * 0.37) % p) / p, vx = (hash(i) - 0.5) * 120, hh = 60 + hash(i + 50) * (50 + s * 30);
+          ctx.globalAlpha = 1 - u * 0.6;
+          Kit.disc(ctx, CX + vx * u, CY - 4 * hh * u * (1 - u), 2.4 + (i % 3), i % 3 ? '#ff8a3c' : '#ffe08a');
+        }
+        ctx.globalAlpha = 1;
+        // incendies laissés par les bombes
+        const feux = [];
+        for (let i = 0; i < 4 + s * 3; i++) { const x = 40 + hash(i + 7) * (W - 80); feux.push([x, h1(x) + 3, 0.55]); }
+        if (s >= 2) for (let i = 0; i < 3 + (s - 1) * 3; i++) { const x = 60 + hash(i + 90) * (W - 220); feux.push([x, h2(x) + 6, 0.85]); }
+        for (const [x, y, k] of feux) { Kit.halo(ctx, x, y - 10 * k, 34 * k, '255,120,40', 0.5); Kit.flame(ctx, x, y, 30 * k, 16 * k, x); }
+        // les bombes de lave : du cratère vers leur point de chute
+        const nb = 5 + s * 4;
+        for (let i = 0; i < nb; i++) {
+          const p = 2.1 + (i % 5) * 0.33, ph = T + i * 0.71, n = Math.floor(ph / p), u = (ph % p) / p;
+          const r1 = hash(i * 31 + n), r2 = hash(i * 17 + n * 3 + 5);
+          let tx, ty, k;
+          const zone = s >= 3 && (r2 < 0.55 || (L && L.etat !== 'attente')) ? 'terrain' : s >= 2 && r2 < 0.75 ? 'devant' : 'fond';
+          if (zone === 'terrain') {
+            tx = L && L.etat === 'coule' && r2 < 0.8 ? L.x - 30 + r1 * 160 : PF + 20 + r1 * (EF - PF - 40);
+            ty = GROUND - 2; k = 1.15;
+          } else if (zone === 'devant') { tx = 40 + r1 * (W - 80); ty = h2(tx) + 6; k = 0.85; }
+          else { tx = 20 + r1 * (W - 40); ty = h1(tx) + 2; k = 0.55; }
+          if (u < 0.72) {
+            const q = u / 0.72, haut = 230 + r2 * 120;
+            for (let j = 4; j >= 0; j--) {
+              const qq = Math.max(0, q - j * 0.025);
+              const x = CX + (tx - CX) * qq, y = CY + (ty - CY) * qq - 4 * haut * qq * (1 - qq);
+              ctx.globalAlpha = j ? 0.5 - j * 0.09 : 1;
+              if (!j) Kit.halo(ctx, x, y, 22 * (0.7 + k * 0.4), '255,140,40', 0.6);
+              Kit.disc(ctx, x, y, (j ? 6 - j * 0.8 : 8.5) * (0.7 + k * 0.4), j ? '#ff7a22' : '#ffd36a');
+            }
+            ctx.globalAlpha = 1;
+          } else {
+            const v = (u - 0.72) / 0.28;
+            Kit.halo(ctx, tx, ty - 6, (30 + v * 40) * k, '255,130,40', 0.8 * (1 - v));
+            ctx.strokeStyle = `rgba(255,220,140,${1 - v})`; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.ellipse(tx, ty, (8 + v * 46) * k, (3 + v * 10) * k, 0, 0, Math.PI * 2); ctx.stroke();
+            for (let j = 0; j < 6; j++) { const a = Math.PI * (0.1 + 0.8 * j / 5); Kit.disc(ctx, tx + Math.cos(a) * v * 40 * k, ty - Math.sin(a) * v * 34 * k + v * v * 20, 2.4 * k, j % 2 ? '#ff8a3c' : '#ffd36a'); }
+            if (zone === 'terrain' && v < 0.1 && b.shake < 0.12) b.shake = 0.12;
+          }
+        }
+        // braises dans l'air
+        for (let i = 0; i < 6 * s; i++) { const k = (T * 0.12 + i * 0.173) % 1; ctx.globalAlpha = 1 - k; Kit.disc(ctx, (i * 211 + T * 20) % W, k * GROUND, 1.6, i % 2 ? '#ff8a3c' : '#ffd36a'); }
+        ctx.globalAlpha = 1;
+      }
       if (L && L.x != null) {
         const x0 = L.x, x1 = EF + 10, c = L.refroidi;
         const g = ctx.createLinearGradient(0, GROUND - 8, 0, GROUND + 22);
