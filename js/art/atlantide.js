@@ -263,17 +263,48 @@
 
   /* ------------------------------------------------- le phénomène : la mer monte */
   A.phen.atlantide = function (ctx, b, P, T) {
-    const s = P.s;
-    // la mer gagne l'horizon (par-dessus le décor de l'Antiquité, derrière les unités)
-    const niveau = GROUND - 8 - s * 26 - (P.etat === 'arrivee' ? 30 : 0);
-    const g = ctx.createLinearGradient(0, niveau - 10, 0, GROUND);
-    g.addColorStop(0, 'rgba(60,170,210,0.55)'); g.addColorStop(1, 'rgba(20,90,150,0.75)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-40, GROUND + 2);
-    for (let x = -40; x <= W + 40; x += 16) ctx.lineTo(x, niveau + Math.sin(x * 0.02 + T * 1.6) * 3);
-    ctx.lineTo(W + 40, GROUND + 2); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = 'rgba(232,251,255,0.7)'; ctx.lineWidth = 1.6; ctx.beginPath();
-    for (let x = -40; x <= W + 40; x += 16) ctx.lineTo(x, niveau + Math.sin(x * 0.02 + T * 1.6) * 3);
-    ctx.stroke();
+    const s = P.s, arrivee = P.etat === 'arrivee';
+    // La vraie mer du fond (bande y 462 du décor de l'Antiquité) déborde par étapes :
+    //   stade 1 : elle monte un peu et envahit le désert (les collines du fond) ;
+    //   stade 2 : elle noie les îles et tout le désert, jusqu'aux collines de devant ;
+    //   stade 3 : le raz-de-marée arrive sur le champ de bataille, puis l'eau le recouvre.
+    // haut = hauteur de la surface (plus petit = plus haut), avant = jusqu'où l'eau s'avance vers nous.
+    const HAUT = [462, 466, 426, 420], AVANT = [462, 522, 600, 600];
+    const cH = HAUT[Math.min(s, 3)], cA = AVANT[Math.min(s, 3)];
+    const m = b._mer || (b._mer = { h: HAUT[Math.max(0, s - 1)], a: AVANT[Math.max(0, s - 1)], t: T, sol: 0 });
+    const dt = Math.min(0.1, Math.max(0, T - m.t)); m.t = T;
+    const k = Math.min(1, dt * 0.35);
+    m.h += (cH - m.h) * k; m.a += (cA - m.a) * k;
+    m.sol += ((arrivee ? 1 : 0) - m.sol) * Math.min(1, dt * 0.8);
+    const h2 = x => 566 - Math.sin(x * 0.0058 + 2.6) * 15 - Math.sin(x * 0.018 + 0.2) * 5;
+    const surf = x => m.h + Math.sin(x * 0.02 + T * 1.6) * 2.2;
+    const bord = x => Math.min(m.a + Math.sin(x * 0.013 + T * 1.1) * 7 + Math.sin(x * 0.041 - T * 2) * 3, h2(x) + 2);
+    const pas = 16;
+    if (m.a - m.h > 2) {
+      const g = ctx.createLinearGradient(0, m.h, 0, Math.max(m.h + 40, m.a));
+      g.addColorStop(0, 'rgba(63,143,192,0.96)'); g.addColorStop(0.45, 'rgba(80,160,200,0.86)'); g.addColorStop(1, 'rgba(60,140,185,0.72)');
+      ctx.fillStyle = g; ctx.beginPath();
+      for (let x = -40; x <= W + 40; x += pas) ctx.lineTo(x, surf(x));
+      for (let x = W + 40; x >= -40; x -= pas) ctx.lineTo(x, Math.max(surf(x), bord(x)));
+      ctx.closePath(); ctx.fill();
+      // reflets sur l'eau
+      ctx.strokeStyle = 'rgba(232,251,255,0.35)'; ctx.lineWidth = 1.2; ctx.beginPath();
+      for (let i = 0; i < 14; i++) { const x = (i * 97 + T * 12) % (W + 60) - 30, y = m.h + 8 + (i * 37) % Math.max(8, m.a - m.h - 12); if (y < bord(x) - 4) { ctx.moveTo(x, y); ctx.lineTo(x + 18, y); } }
+      ctx.stroke();
+      // la surface, et l'écume du front de mer qui avance sur le sable
+      ctx.strokeStyle = 'rgba(232,251,255,0.7)'; ctx.lineWidth = 1.4; ctx.beginPath();
+      for (let x = -40; x <= W + 40; x += pas) ctx.lineTo(x, surf(x));
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(240,252,255,0.85)'; ctx.lineWidth = 2.4; ctx.beginPath();
+      for (let x = -40; x <= W + 40; x += pas / 2) { const y = bord(x); if (y < h2(x)) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+      ctx.stroke();
+    }
+    // stade 3, après la vague : le champ de bataille est sous l'eau
+    if (m.sol > 0.01) {
+      ctx.fillStyle = `rgba(50,140,190,${0.55 * m.sol})`; ctx.beginPath();
+      for (let x = -40; x <= W + 40; x += pas) ctx.lineTo(x, h2(x) - 2);
+      ctx.lineTo(W + 40, GROUND + 2); ctx.lineTo(-40, GROUND + 2); ctx.closePath(); ctx.fill();
+    }
     ctx.fillStyle = `rgba(30,90,140,${0.05 * s})`; ctx.fillRect(0, 0, W, GROUND);
     // la pluie (stade 2 et plus)
     if (s >= 2) { ctx.strokeStyle = 'rgba(200,230,255,0.45)'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 50 * (s - 1); i++) { const x = (i * 97 + T * 300) % (W + 100) - 50, y = (i * 61 + T * 700) % GROUND; ctx.moveTo(x, y); ctx.lineTo(x - 6, y + 16); } ctx.stroke(); }
