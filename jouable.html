@@ -2488,6 +2488,7 @@ window.PA = window.PA || {};
       // Les volants passent devant les autres.
       const all = b.pu.concat(b.eu).sort((u, v) => ((u.alt || 0) > 0) - ((v.alt || 0) > 0) || u.x - v.x);
       for (const u of all) this.unit(ctx, u);
+      if (b.phen && PA.AgesCaches && PA.AgesCaches.devant) PA.AgesCaches.devant(ctx, b, t);   // ce qui passe devant les unités (vague, neige)
       if (PA.Champions) PA.Champions.dessiner(ctx, b);    // champions : souffle, bouclier, parachutes, rayons…
       for (const u of all) this.unitBar(ctx, u);
       for (const p of b.projectiles) this.projectile(ctx, p);

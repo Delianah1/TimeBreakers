@@ -283,7 +283,7 @@
     const sol = et === 'arrivee' ? 1 : et === 'vague' ? (P.k || 0) : 0;
     const h2 = x => 564 - Math.sin(x * 0.006 + 5.2) * 16 - Math.sin(x * 0.018 + 0.7) * 6;
     const haut = x => 418 + Math.sin(x * 0.011 + 0.6) * 14 + Math.sin(x * 0.037 + 2) * 6;
-    const lim = x => { const y = h2(x) + 2; return y + (GROUND + 12 - y) * Math.min(1, sol * (1 + Math.sin(x * 0.02 + 1) * 0.12)); };
+    const lim = x => { const y = h2(x) + 2; return y + (GROUND - 2 - y) * Math.min(1, sol * (1 + Math.sin(x * 0.02 + 1) * 0.12)); };
     const bord = x => Math.min(m.a + Math.sin(x * 0.017 + T * 0.7) * 9 + Math.sin(x * 0.05 - T) * 4, lim(x));
     const pas = 14;
     ctx.fillStyle = `rgba(220,240,255,${0.07 * s})`; ctx.fillRect(0, 0, W, GROUND);
@@ -322,5 +322,29 @@
     // flocons, de plus en plus serrés et de travers
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     for (let i = 0; i < 40 * s; i++) { const k = (T * (0.08 + s * 0.03) + i * 0.173) % 1; ctx.beginPath(); ctx.arc((i * 97 - T * 40 * s + Math.sin(T + i) * 10) % (W + 80) + 40, k * GROUND, 1 + (i % 3) * 0.7, 0, TAU); ctx.fill(); }
+  };
+
+  // Devant les unités : la couche de neige posée SUR le sol, qui monte au fil des stades
+  // (quelques pixels au stade 1, puis jusqu'à la moitié des troupes quand l'avalanche arrive).
+  A.phenDevant = A.phenDevant || {};
+  A.phenDevant.glace = function (ctx, b, P, T) {
+    const s = P.s, et = P.etat;
+    const cible = et === 'arrivee' ? 24 : et === 'vague' ? 10 + 14 * (P.k || 0) : [0, 3, 6, 10][Math.min(s, 3)];
+    const m = b._neige || (b._neige = { h: [0, 0, 3, 8][Math.min(s, 3)], t: T });
+    const dt = Math.min(0.1, Math.max(0, T - m.t)); m.t = T;
+    m.h += (cible - m.h) * Math.min(1, dt * (et === 'vague' ? 6 : 0.5));
+    if (m.h < 0.5) return;
+    const y = x => GROUND - m.h + Math.sin(x * 0.045 + 1.3) * Math.min(4, m.h * 0.25) + Math.sin(x * 0.13) * Math.min(2, m.h * 0.1);
+    const g = ctx.createLinearGradient(0, GROUND - m.h - 4, 0, GROUND + 2);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(0.7, '#eef6fc'); g.addColorStop(1, '#d4e6f4');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-40, GROUND + 2);
+    for (let x = -40; x <= W + 40; x += 10) ctx.lineTo(x, y(x));
+    ctx.lineTo(W + 40, GROUND + 2); ctx.closePath(); ctx.fill();
+    // ombre bleutée sous la crête et scintillement
+    ctx.strokeStyle = 'rgba(140,180,220,0.5)'; ctx.lineWidth = 1.2; ctx.beginPath();
+    for (let x = -40; x <= W + 40; x += 10) ctx.lineTo(x, y(x) + 3);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    for (let i = 0; i < 18; i++) { const x = (i * 71) % W; if (Math.sin(T * 3 + i * 1.7) > 0.7) { ctx.beginPath(); ctx.arc(x, y(x) + 4 + (i % 4) * Math.min(6, m.h * 0.2), 1.4, 0, TAU); ctx.fill(); } }
   };
 })();

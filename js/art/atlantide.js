@@ -316,4 +316,42 @@
     // la pluie (stade 2 et plus)
     if (s >= 2) { ctx.strokeStyle = 'rgba(200,230,255,0.45)'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 50 * (s - 1); i++) { const x = (i * 97 + T * 300) % (W + 100) - 50, y = (i * 61 + T * 700) % GROUND; ctx.moveTo(x, y); ctx.lineTo(x - 6, y + 16); } ctx.stroke(); }
   };
+
+  // Devant les unités et les bases : la grosse vague du stade 3. Elle se dresse derrière les collines,
+  // monte plus haut que les bases, s'écrase sur tout le terrain, puis l'eau reste aux genoux des troupes.
+  A.phenDevant = A.phenDevant || {};
+  A.phenDevant.atlantide = function (ctx, b, P, T) {
+    const et = P.etat;
+    if (et !== 'vague' && et !== 'arrivee') return;
+    const k = et === 'vague' ? (P.k || 0) : 1;
+    const SOMMET = 300, RESTE = GROUND - 22;
+    let top, a, houle;
+    if (et === 'arrivee') { top = RESTE; a = 0.42; houle = 3; }
+    else if (k < 0.55) { const u = k / 0.55; top = 590 - (590 - SOMMET) * Math.pow(u, 0.7); a = 0.55 + 0.35 * u; houle = 14; }
+    else { const u = (k - 0.55) / 0.45; top = SOMMET + (RESTE - SOMMET) * Math.pow(u, 1.8); a = 0.9 - 0.4 * u; houle = 14 - 10 * u; }
+    const y = x => top + Math.sin(x * 0.012 + T * 2.2) * houle + Math.sin(x * 0.045 - T * 3) * houle * 0.35;
+    const g = ctx.createLinearGradient(0, top, 0, GROUND + 6);
+    g.addColorStop(0, `rgba(70,165,210,${a})`); g.addColorStop(0.5, `rgba(30,110,170,${a})`); g.addColorStop(1, `rgba(20,80,140,${Math.min(1, a + 0.1)})`);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-40, GROUND + 6);
+    for (let x = -40; x <= W + 40; x += 14) ctx.lineTo(x, y(x));
+    ctx.lineTo(W + 40, GROUND + 6); ctx.closePath(); ctx.fill();
+    // l'écume de la crête
+    ctx.strokeStyle = `rgba(240,252,255,${et === 'vague' ? 0.95 : 0.7})`; ctx.lineWidth = et === 'vague' ? 5 : 2.4; ctx.beginPath();
+    for (let x = -40; x <= W + 40; x += 10) ctx.lineTo(x, y(x));
+    ctx.stroke();
+    if (et === 'vague') {
+      // la crête qui s'enroule, et les embruns
+      ctx.fillStyle = 'rgba(240,252,255,0.9)';
+      for (let x = -20; x <= W + 20; x += 22) { const r = 6 + Math.abs(Math.sin(x * 0.09 + T * 4)) * 8; ctx.beginPath(); ctx.arc(x, y(x) - 2, r, 0, TAU); ctx.fill(); }
+      for (let i = 0; i < 60; i++) {
+        const x = (i * 23.1) % (W + 40) - 20, u = (T * 1.6 + i * 0.173) % 1;
+        ctx.globalAlpha = 0.85 * (1 - u); ctx.beginPath(); ctx.arc(x + Math.sin(i) * 10, y(x) - u * 70, 2 + (i % 3) * 1.5, 0, TAU); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      // reflets dans la masse d'eau
+      ctx.strokeStyle = 'rgba(200,240,255,0.35)'; ctx.lineWidth = 2; ctx.beginPath();
+      for (let i = 0; i < 20; i++) { const x = (i * 71 + T * 30) % W, yy = top + 30 + (i * 43) % Math.max(20, GROUND - top - 30); ctx.moveTo(x, yy); ctx.quadraticCurveTo(x + 20, yy - 6, x + 40, yy); }
+      ctx.stroke();
+    }
+  };
 })();

@@ -296,6 +296,11 @@ window.PA = window.PA || {};
       const P = b.phen, f = PA.Art && PA.Art.phen && PA.Art.phen[P.c.cle];
       if (f) f(ctx, b, P, performance.now() / 1000);
     },
+    // Dessiné après les unités et les bases : la vague qui les submerge, la neige qui les enfouit.
+    devant(ctx, b, t) {
+      const P = b.phen, f = PA.Art && PA.Art.phenDevant && PA.Art.phenDevant[P.c.cle];
+      if (f) f(ctx, b, P, performance.now() / 1000);
+    },
   };
 
   // ---------------------------------------------------------------- branchements

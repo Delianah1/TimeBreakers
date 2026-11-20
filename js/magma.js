@@ -109,35 +109,55 @@ window.PA = window.PA || {};
       if (b.volcan) M.majVolcan(b, dt);
     },
 
-    // La coulée du 3e stade : elle part du pied du volcan (à droite), traverse la piste et refroidit.
+    // Le 3e stade : le volcan bombarde le terrain. Chaque bombe s'écrase, brûle les unités autour
+    // (une fois chacune) et laisse une flaque de lave qui s'étale. Quand les flaques couvrent la piste, c'est fini.
     majVolcan(b, dt) {
       const L = b.lave; if (!L) return;
       if (b.volcan >= 2 && Math.random() < dt * 0.4) b.shake = Math.max(b.shake, 0.1);
       if (L.etat === 'aucune') return;
       if (L.etat === 'attente') {
         L.t -= dt;
-        if (L.t <= 3 && !L.alerte) { L.alerte = true; b.game.toast('Le sol tremble… la lave arrive !', 'big'); }
-        if (L.t <= 0) { L.etat = 'coule'; L.x = EF - 10; b.shake = 0.5; if (PA.Sons && PA.Sons.evolution) { /* pas de son dédié */ } }
+        if (L.t <= 3 && !L.alerte) { L.alerte = true; b.game.toast('Le volcan gronde… les bombes de lave arrivent !', 'big'); }
+        if (L.t <= 0) {
+          L.etat = 'coule'; L.x = EF - 10; b.shake = 0.5;
+          // 24 bombes réparties sur toute la piste, dans le désordre, sur 5 secondes
+          const n = 24, pas = (EF - PF - 40) / n, cibles = [];
+          for (let i = 0; i < n; i++) cibles.push(PF + 20 + (i + 0.2 + Math.random() * 0.6) * pas);
+          for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cibles[i], cibles[j]] = [cibles[j], cibles[i]]; }
+          L.bombes = cibles.map((x, i) => ({ x, t: -i * 0.21, vol: 1.1, haut: 220 + Math.random() * 140 }));
+          L.flaques = [];
+        }
         return;
       }
       if (L.etat === 'coule') {
-        L.x -= 170 * dt;
-        b.shake = Math.max(b.shake, 0.12);
-        for (const list of [b.pu, b.eu]) for (const u of list) {
-          if (u.dead || u.alt > 0 || L.touches.has(u) || u.x < L.x - u.w / 2) continue;
-          L.touches.add(u);
-          b.damageUnit(u, u.maxHp * (u.isChampion ? 0.1 : 0.35), false, 'pouvoir');
-          if (!u.dead) u.burn = { dps: u.maxHp * 0.04, t: 3 };
-          b.spark(u.x, GROUND - 10, '#ff8a3c', 6);
+        b.shake = Math.max(b.shake, 0.08);
+        for (const bo of L.bombes) {
+          if (bo.posee) continue;
+          bo.t += dt;
+          if (bo.t < bo.vol) continue;
+          bo.posee = true;
+          const r = 34 + Math.random() * 14;
+          L.flaques.push({ x: bo.x, r: 8, rMax: r, age: 0, ph: Math.random() * 6 });
+          b.shake = Math.max(b.shake, 0.3);
+          for (const list of [b.pu, b.eu]) for (const u of list) {
+            if (u.dead || u.alt > 0 || L.touches.has(u) || Math.abs(u.x - bo.x) > r + u.w / 2) continue;
+            L.touches.add(u);
+            b.damageUnit(u, u.maxHp * (u.isChampion ? 0.1 : 0.35), false, 'pouvoir');
+            if (!u.dead) u.burn = { dps: u.maxHp * 0.04, t: 3 };
+            b.spark(u.x, GROUND - 10, '#ff8a3c', 6);
+          }
+          for (let i = 0; i < 16; i++) b.particles.push({ x: bo.x + rand(-10, 10), y: GROUND - rand(0, 10), vx: rand(-160, 160), vy: rand(-280, -80), life: 0.7, max: 0.7, color: i % 2 ? '#ff8a3c' : '#ffd36a', size: rand(2, 5) });
         }
-        if (Math.random() < dt * 30) b.particles.push({ x: L.x + rand(0, 20), y: GROUND - rand(0, 14), vx: rand(-60, 30), vy: rand(-200, -60), life: 0.6, max: 0.6, color: Math.random() < 0.5 ? '#ff8a3c' : '#ffd36a', size: rand(2, 4) });
-        if (L.x <= PF + 10) {
-          L.etat = 'arrivee'; L.x = PF + 10;
-          if (b.run.age === 0) b.game.toast('La lave a tout recouvert : plonge dans le magma !', 'big');
+        if (L.bombes.every(bo => bo.posee)) {
+          L.fin = (L.fin || 0) + dt;
+          if (L.fin > 0.8) {
+            L.etat = 'arrivee'; L.x = PF + 10;
+            if (b.run.age === 0) b.game.toast('La lave a tout recouvert : plonge dans le magma !', 'big');
+          }
         }
-        return;
       }
-      L.refroidi = Math.min(1, L.refroidi + dt / 20);
+      if (L.flaques) for (const f of L.flaques) { f.age += dt; f.r = Math.min(f.rMax, f.r + dt * 60); }
+      if (L.etat === 'arrivee') L.refroidi = Math.min(1, L.refroidi + dt / 20);
     },
 
     plongeePossible(b) {
@@ -198,11 +218,9 @@ window.PA = window.PA || {};
           const p = 2.1 + (i % 5) * 0.33, ph = T + i * 0.71, n = Math.floor(ph / p), u = (ph % p) / p;
           const r1 = hash(i * 31 + n), r2 = hash(i * 17 + n * 3 + 5);
           let tx, ty, k;
-          const zone = s >= 3 && (r2 < 0.55 || (L && L.etat !== 'attente')) ? 'terrain' : s >= 2 && r2 < 0.75 ? 'devant' : 'fond';
-          if (zone === 'terrain') {
-            tx = L && L.etat === 'coule' && r2 < 0.8 ? L.x - 30 + r1 * 160 : PF + 20 + r1 * (EF - PF - 40);
-            ty = GROUND - 2; k = 1.15;
-          } else if (zone === 'devant') { tx = 40 + r1 * (W - 80); ty = h2(tx) + 6; k = 0.85; }
+          // (les bombes qui tombent sur le terrain au stade 3 sont de vraies bombes : L.bombes, plus bas)
+          const zone = s >= 2 && r2 < 0.75 ? 'devant' : 'fond';
+          if (zone === 'devant') { tx = 40 + r1 * (W - 80); ty = h2(tx) + 6; k = 0.85; }
           else { tx = 20 + r1 * (W - 40); ty = h1(tx) + 2; k = 0.55; }
           if (u < 0.72) {
             const q = u / 0.72, haut = 230 + r2 * 120;
@@ -220,25 +238,49 @@ window.PA = window.PA || {};
             ctx.strokeStyle = `rgba(255,220,140,${1 - v})`; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.ellipse(tx, ty, (8 + v * 46) * k, (3 + v * 10) * k, 0, 0, Math.PI * 2); ctx.stroke();
             for (let j = 0; j < 6; j++) { const a = Math.PI * (0.1 + 0.8 * j / 5); Kit.disc(ctx, tx + Math.cos(a) * v * 40 * k, ty - Math.sin(a) * v * 34 * k + v * v * 20, 2.4 * k, j % 2 ? '#ff8a3c' : '#ffd36a'); }
-            if (zone === 'terrain' && v < 0.1 && b.shake < 0.12) b.shake = 0.12;
           }
         }
         // braises dans l'air
         for (let i = 0; i < 6 * s; i++) { const k = (T * 0.12 + i * 0.173) % 1; ctx.globalAlpha = 1 - k; Kit.disc(ctx, (i * 211 + T * 20) % W, k * GROUND, 1.6, i % 2 ? '#ff8a3c' : '#ffd36a'); }
         ctx.globalAlpha = 1;
       }
-      if (L && L.x != null) {
-        const x0 = L.x, x1 = EF + 10, c = L.refroidi;
-        const g = ctx.createLinearGradient(0, GROUND - 8, 0, GROUND + 22);
-        g.addColorStop(0, c >= 1 ? '#3a2a26' : `rgba(255,${150 - c * 80 | 0},40,0.95)`); g.addColorStop(1, '#7a2a18');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x0, GROUND + 22);
-        for (let x = x0; x <= x1; x += 14) ctx.lineTo(x, GROUND - 5 - Math.sin(x * 0.07 + T * 3) * 3 * (1 - c));
-        ctx.lineTo(x1, GROUND + 22); ctx.closePath(); ctx.fill();
-        if (c < 1) {
-          ctx.globalAlpha = 1 - c; ctx.strokeStyle = '#ffe9a0'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 10]); ctx.lineDashOffset = T * 20;
-          ctx.beginPath(); ctx.moveTo(x0, GROUND + 1); ctx.lineTo(x1, GROUND + 1); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      if (L && L.flaques && Kit) {
+        // les flaques de lave laissées par les bombes (posées sur le sol, elles refroidissent ensuite)
+        const c = L.refroidi;
+        for (const f of L.flaques) {
+          const g = ctx.createRadialGradient(f.x, GROUND + 2, 0, f.x, GROUND + 2, f.r);
+          if (c >= 1) { g.addColorStop(0, '#4a3430'); g.addColorStop(1, '#2e2220'); }
+          else { g.addColorStop(0, `rgba(255,${220 - c * 120 | 0},${110 - c * 70 | 0},1)`); g.addColorStop(0.55, `rgba(255,${130 - c * 70 | 0},30,1)`); g.addColorStop(1, `rgba(150,${40 + c * 10 | 0},20,1)`); }
+          ctx.fillStyle = g; ctx.beginPath();
+          for (let i = 0; i <= 16; i++) {
+            const a = Math.PI * 2 * i / 16, w = 1 + Math.sin(a * 3 + f.ph) * 0.12 + Math.sin(a * 5 + f.ph * 2) * 0.06;
+            const x = f.x + Math.cos(a) * f.r * w, y = GROUND + 2 + Math.sin(a) * 6 * w;
+            if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+          }
+          ctx.closePath(); ctx.fill();
+          if (c < 1) {
+            Kit.halo(ctx, f.x, GROUND - 4, f.r * 1.1, '255,120,40', 0.35 * (1 - c));
+            // bulles qui éclatent
+            for (let i = 0; i < 3; i++) { const u = (T * 0.8 + i * 0.33 + f.ph) % 1; ctx.globalAlpha = (1 - u) * (1 - c); Kit.disc(ctx, f.x + Math.sin(f.ph + i * 2.1) * f.r * 0.6, GROUND + 1 - u * 6, 1.5 + u * 2.5, '#ffe08a'); }
+            ctx.globalAlpha = 1;
+          }
         }
-        if (L.etat === 'coule') { Kit && Kit.halo(ctx, x0, GROUND - 6, 40, '255,120,40', 0.7); Kit && Kit.flame(ctx, x0 + 4, GROUND, 18, 16, 1); }
+      }
+      if (L && L.bombes && Kit) {
+        // les vraies bombes, du cratère jusqu'à la piste
+        const CX = 930, CY = 252;
+        for (const bo of L.bombes) {
+          if (bo.posee || bo.t < 0) continue;
+          const q = bo.t / bo.vol;
+          for (let j = 5; j >= 0; j--) {
+            const qq = Math.max(0, q - j * 0.03);
+            const x = CX + (bo.x - CX) * qq, y = CY + (GROUND - 4 - CY) * qq - 4 * bo.haut * qq * (1 - qq);
+            ctx.globalAlpha = j ? 0.55 - j * 0.08 : 1;
+            if (!j) Kit.halo(ctx, x, y, 30, '255,140,40', 0.7);
+            Kit.disc(ctx, x, y, j ? 8 - j : 11, j ? '#ff7a22' : '#ffd36a');
+          }
+          ctx.globalAlpha = 1;
+        }
       }
     },
   };
