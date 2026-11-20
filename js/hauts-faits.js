@@ -277,7 +277,7 @@ window.PA = window.PA || {};
       const duree = 4300;
       el.className = 'hf-fx hf-missive';
       el.innerHTML = `<div class="rouleau"><div class="papier"><i>${ico}</i><div><small>${titre}</small><b>${h.nom}</b><span>${h.desc}</span></div>${gain}</div>`
-        + `<div class="bout g"></div><div class="bout d"></div><div class="sceau">✦</div></div>`;
+        + `<div class="bout g"></div><div class="bout d"></div>${PA.Collection ? PA.Collection.sceauHtml() : '<div class="sceau">✦</div>'}</div>`;
       st.appendChild(el);
       if (PA.Sons && PA.Sons.corne) { try { PA.Sons.corne(); } catch (e) { /* ignore */ } }
       requestAnimationFrame(() => el.classList.add('on'));

@@ -522,9 +522,12 @@ window.PA = window.PA || {};
 
     // Vignette d'une unité ou d'une tourelle pour les boutons : le même dessin que sur le terrain,
     // recadré au plus juste. kind = 'unit' ou 'turret'. Renvoie une image (data URL), gardée en mémoire.
+    // Couleur de ton armée (base, drapeaux, troupes, tourelles) : récompense des hauts faits (js/collection.js).
+    couleurEquipe(clair, fonce) { TEAM[1] = clair; TEAM_DARK[1] = fonce; },
+
     portrait(kind, def) {
       const art = PA.Art && PA.Art.on ? PA.Art : null;
-      const key = `${kind}:${def.id}:${art ? 1 : 0}`;
+      const key = `${kind}:${def.id}:${art ? 1 : 0}:${TEAM[1]}`;   // la couleur d'armée (js/collection.js) change le portrait
       this.portraits = this.portraits || {};
       if (this.portraits[key]) return this.portraits[key];
       const S = 320, c = document.createElement('canvas');

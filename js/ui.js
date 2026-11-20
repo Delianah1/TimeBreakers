@@ -492,6 +492,7 @@ window.PA = window.PA || {};
         rush: PA.Modes && tab === 'rush' ? this.panneauRush(meta) : '',
         defi: PA.Modes && tab === 'defi' ? this.panneauDefi(meta) : '',
         hf: PA.HautsFaits && tab === 'hf' ? PA.HautsFaits.panneau(meta) : '',   // hauts faits (js/hauts-faits.js)
+        bestiaire: PA.Bestiaire && tab === 'bestiaire' ? PA.Bestiaire.panneau(meta) : '',   // bestiaire (js/collection.js)
         pouvoirs: `<p class="camp-hint">Un pouvoir équipé par âge. Celui de contrôle est offert ; les trois autres s’achètent une fois l’âge débloqué.</p><div class="upgrades pouvoirs">${pouvoirs}</div>`,
       };
       const tabs = [['ups', '⚒', 'Améliorations'], ['ages', '⏳', 'Âges'], ['play', '⚔', 'Bataille'], ['elites', '★', 'Élites'], ['pouvoirs', '✦', 'Pouvoirs']]
@@ -548,7 +549,7 @@ window.PA = window.PA || {};
         <div class="camp-top">
           <div class="cur" title="Points de prestige"><i>✦</i>${fmt(meta.balance)}</div>
           <div class="seg" title="Chaque difficulté a sa propre progression">${Object.keys(C.difficulties).map(id => `<button data-action="diff" data-arg="${id}" class="d-${id}${id === meta.difficulty ? ' on' : ''}">${C.difficulties[id].name}</button>`).join('')}</div>
-          <div class="side">${meta.totalEarned > meta.balance ? `<span class="muted">Total gagné : ${fmt(meta.totalEarned)} ✦</span>` : ''}${PA.HautsFaits ? `<button data-action="tab" data-arg="${tab === 'hf' ? 'play' : 'hf'}" class="hf-bouton" title="Hauts faits">${tab === 'hf' ? '✕' : '🏆'}</button>` : ''}<button data-action="musique" class="son${PA.Music.on ? '' : ' off'}" title="Musique : oui / non">♪</button><button data-action="bruitages" class="son${PA.Music.fx ? '' : ' off'}" title="Effets sonores : oui / non">🔊</button><button data-action="tab" data-arg="${tab === 'aide' ? 'play' : 'aide'}" title="Aide et réglages">${tab === 'aide' ? '✕' : '?'}</button></div>
+          <div class="side">${meta.totalEarned > meta.balance ? `<span class="muted">Total gagné : ${fmt(meta.totalEarned)} ✦</span>` : ''}${PA.Bestiaire ? `<button data-action="tab" data-arg="${tab === 'bestiaire' ? 'play' : 'bestiaire'}" class="hf-bouton" title="Bestiaire">${tab === 'bestiaire' ? '✕' : '📖'}</button>` : ''}${PA.HautsFaits ? `<button data-action="tab" data-arg="${tab === 'hf' ? 'play' : 'hf'}" class="hf-bouton" title="Hauts faits">${tab === 'hf' ? '✕' : '🏆'}</button>` : ''}<button data-action="musique" class="son${PA.Music.on ? '' : ' off'}" title="Musique : oui / non">♪</button><button data-action="bruitages" class="son${PA.Music.fx ? '' : ' off'}" title="Effets sonores : oui / non">🔊</button><button data-action="tab" data-arg="${tab === 'aide' ? 'play' : 'aide'}" title="Aide et réglages">${tab === 'aide' ? '✕' : '?'}</button></div>
         </div>
         <div class="camp-body ${tab === 'play' ? '' : 'list'}">${tab === 'aide' ? `<div>${aide}</div>` : bodies[tab]}</div>
         <nav class="tabs">${tabs}</nav>
