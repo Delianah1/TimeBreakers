@@ -78,6 +78,9 @@ body.in-menu #hud, body.in-menu #dock, body.in-menu #btn-special { display: none
 #btn-evolve:disabled { opacity: 0.4; filter: grayscale(0.6); }
 #btn-evolve:not(:disabled) { background: linear-gradient(#ffe36a, #f2a91f); color: #5a3a00; text-shadow: none; animation: pulse 0.8s infinite alternate; }
 #btn-evolve.magma:not(:disabled) { background: linear-gradient(#ff8a3c, #c8281a); color: #fff3d6; text-shadow: 0 0.1cqw 0 #5a1208; }
+#btn-evolve.abysses:not(:disabled) { background: linear-gradient(#4ad8e8, #1a4ab0); color: #e8fbff; text-shadow: 0 0.1cqw 0 #08204a; }
+#btn-evolve.givre:not(:disabled) { background: linear-gradient(#f2fbff, #7ab8e8); color: #0e3050; text-shadow: 0 0.1cqw 0 #ffffff; }
+#btn-evolve.neon:not(:disabled) { background: linear-gradient(#ff3ad8, #6a1ad8); color: #fff; text-shadow: 0 0 0.6cqw #3afff0; }
 @keyframes pulse { from { box-shadow: 0 0.45cqw 0 #8f5a00, 0 0 0 0 rgba(255,210,63,0.7); } to { box-shadow: 0 0.45cqw 0 #8f5a00, 0 0 1.6cqw 0.6cqw rgba(255,210,63,0.75); } }
 .round { width: 3.6cqw; height: 3.6cqw; border-radius: 50%; font-size: 1.35cqw; display: grid; place-items: center; padding: 0; }
 .round.quit { background: linear-gradient(#ff8a7a, var(--red)); box-shadow: 0 0.45cqw 0 var(--red-d), inset 0 0.35cqw 0 rgba(255,255,255,0.3); }
@@ -384,6 +387,21 @@ details.dev summary { cursor: pointer; color: var(--muted); }
 .hf b { font-weight: 700; }
 .hf span { color: #c4d4f4; font-size: 0.88em; }
 .hf > em { font-style: normal; color: var(--yellow); font-weight: 700; white-space: nowrap; font-size: 0.9em; }
+/* Mutateurs (js/mutateurs.js) */
+#overlay-card .hero .mut-bouton { font-size: clamp(12px, min(1.9vw, 3.8vh), 19px); padding: 0.3em 1.1em; background: linear-gradient(#5a4aa8, #3a2a7a); color: #efe6ff; }
+#overlay-card .hero .mut-bouton.on { background: linear-gradient(#b06bff, #6a2ad8); box-shadow: 0 0 calc(var(--u) * 1.2) rgba(176,107,255,0.6); }
+.mut-total { margin: calc(var(--u) * 0.6) 0 calc(var(--u) * 1); font-family: var(--f-title); color: #e6d6ff; display: flex; align-items: center; gap: calc(var(--u) * 1); }
+.mut-total b { color: var(--yellow); }
+.mut-vider { font-size: 0.8em; padding: 0.2em 0.8em; }
+.mut-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--u) * 30), 1fr)); gap: calc(var(--u) * 0.7); }
+#overlay-card .mut { display: flex; align-items: center; gap: calc(var(--u) * 1); padding: calc(var(--u) * 0.8) calc(var(--u) * 1); background: var(--navy-d); border: calc(var(--u) * 0.3) solid #24488e; border-radius: calc(var(--u) * 1.2); text-align: left; color: inherit; box-shadow: none; font: inherit; }
+#overlay-card .mut.on { border-color: #b06bff; background: linear-gradient(#3a2a7a, var(--navy-d)); }
+#overlay-card .mut:disabled { opacity: 0.45; }
+#overlay-card .mut > i { font-style: normal; font-size: calc(var(--u) * 2.2); width: calc(var(--u) * 3); text-align: center; }
+#overlay-card .mut > div { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+#overlay-card .mut b { font-weight: 700; }
+#overlay-card .mut span { color: #c4d4f4; font-size: 0.88em; }
+#overlay-card .mut > em { font-style: normal; color: var(--yellow); font-weight: 700; white-space: nowrap; font-size: 0.9em; }
 .hf-barre { position: relative; height: calc(var(--u) * 1.5); margin-top: calc(var(--u) * 0.4); background: #0a1838; border-radius: 99px; overflow: hidden; }
 .hf-barre > div { height: 100%; background: linear-gradient(90deg, #2f6fd6, #6fb0ff); }
 .hf-barre > span { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(var(--u) * 1.05); color: #fff; }
@@ -2448,6 +2466,7 @@ window.PA = window.PA || {};
       if (backdrop) backdrop(ctx, t, dt, this);
       else this.background(ctx, pal, t, dt);
       if (b && PA.Magma && (b.volcan || b.lave)) PA.Magma.decor(ctx, b, t);
+      if (b && b.phen && PA.AgesCaches) PA.AgesCaches.decor(ctx, b, t);   // marée, hiver, surtension (js/ages-caches.js)
 
       if (!b) {
         this.base(ctx, 1, C.ages[0].base, null);
@@ -9204,17 +9223,18 @@ window.PA = window.PA || {};
     // une troupe attaque
     attaque(u) {
       if (!this.pret() || !u || !u.def) return;
-      const recette = TROUPES[u.def.id];
+      const id = TROUPES[u.def.id] ? u.def.id : u.def.son;   // son : une troupe des âges cachés emprunte le son d'une autre
+      const recette = TROUPES[id];
       if (!recette) return;
       const B = this.banc(), now = B.ctx.currentTime;
       this.recents = this.recents.filter(x => now - x < 0.12);
       if (this.recents.length >= 5) return;                                    // pas plus de 5 sons en 120 ms
-      if (this.dernier[u.def.id] && now - this.dernier[u.def.id] < 0.07) return;   // ni la même troupe en rafale
-      this.recents.push(now); this.dernier[u.def.id] = now;
+      if (this.dernier[id] && now - this.dernier[id] < 0.07) return;   // ni la même troupe en rafale
+      this.recents.push(now); this.dernier[id] = now;
       const v0 = u.side === 1 ? 1 : 0.7;
       const pan = clamp((u.x / 1280) * 1.4 - 0.7, -0.7, 0.7);
-      if (this.modeReel() && this.jouerReel(u.def.id, B, now + 0.005, v0, { pan })) return;
-      this.jouer(B, recette, now + 0.005, v0 * (NIVEAUX[u.def.id] || 1), { pan });
+      if (this.modeReel() && this.jouerReel(id, B, now + 0.005, v0, { pan })) return;
+      this.jouer(B, recette, now + 0.005, v0 * (NIVEAUX[id] || 1), { pan });
     },
     jouer(B, recette, t, v, o) {
       for (const [fam, p, dt] of recette) FAM[fam](B, t + dt, { v, ...p }, o || {});
@@ -9223,16 +9243,17 @@ window.PA = window.PA || {};
     // une tourelle tire (def : sa définition dans la config ; x : sa position)
     tourelle(def, side, x) {
       if (!this.pret() || !def) return;
-      const recette = TOURELLES[def.id];
+      const id = TOURELLES[def.id] ? def.id : def.son;
+      const recette = TOURELLES[id];
       if (!recette) return;
       const B = this.banc(), now = B.ctx.currentTime;
       this.recentsT = (this.recentsT || []).filter(y => now - y < 0.12);
       if (this.recentsT.length >= 3) return;                                      // pas plus de 3 tirs de tourelle en 120 ms
-      if (this.dernier['t:' + def.id] && now - this.dernier['t:' + def.id] < 0.1) return;
-      this.recentsT.push(now); this.dernier['t:' + def.id] = now;
+      if (this.dernier['t:' + id] && now - this.dernier['t:' + id] < 0.1) return;
+      this.recentsT.push(now); this.dernier['t:' + id] = now;
       const v0 = 0.6 * (side === 1 ? 1 : 0.75), o = { pan: clamp((x / 1280) * 1.4 - 0.7, -0.7, 0.7) };
-      if (this.modeReel() && this.jouerReel('t:' + def.id, B, now + 0.005, v0, o)) return;
-      this.jouer(B, recette, now + 0.005, v0 * (NIVEAUX_TOURELLES[def.id] || 1), o);
+      if (this.modeReel() && this.jouerReel('t:' + id, B, now + 0.005, v0, o)) return;
+      this.jouer(B, recette, now + 0.005, v0 * (NIVEAUX_TOURELLES[id] || 1), o);
     },
 
     // le pouvoir spécial de l'âge lancé
@@ -9622,7 +9643,7 @@ window.PA = window.PA || {};
   const listes = {};
 
   const P = PA.Pouvoirs = {
-    TABLE, GENRES,
+    TABLE, GENRES, ORIGINE,
     // Les quatre pouvoirs d'un âge : [contrôle, origine, frappe, renfort].
     liste(ageIdx) {
       const age = C.ages[ageIdx];
@@ -10244,7 +10265,8 @@ window.PA = window.PA || {};
         for (const p of b.pu) {
           if (p.dead || p.x < x0 || p.x > u.x) continue;
           b.damageUnit(p, u.dmg * 0.8 * dt, true, 'pouvoir');
-          if (!p.dead && (!p.burn || p.burn.dps < u.dmg * 0.2)) p.burn = { dps: u.dmg * 0.2, t: 2 };
+          if (u.def.cap.gel) { if (!p.dead) p.chill = { t: 3, k: 0.5 }; }           // souffle glacé : ralentit au lieu de brûler
+          else if (!p.dead && (!p.burn || p.burn.dps < u.dmg * 0.2)) p.burn = { dps: u.dmg * 0.2, t: 2 };
         }
         if (x0 <= PF) { b.run.base.hp -= u.dmg * dt; b.shake = Math.max(b.shake, 0.08); }
         if (cs.feu <= 0) u.ancre = false;
@@ -11133,7 +11155,8 @@ window.PA = window.PA || {};
       const type = u.def.cap.type;
       if (type === 'souffle' && cs.feu > 0) {
         const m = point(u, 'bouche'), x1 = Math.max(PF - 10, u.x - u.w / 2 - 440), k = Math.min(1, (1.2 - cs.feu) * 5), fin = cs.feu < 0.2 ? 1 - cs.feu / 0.2 : 0;
-        for (let i = 0; i < 30; i++) { const s = i / 29; if (s > k || s < fin) continue; rond(lerp(m.x, x1, s) + Math.sin(T * 20 + i) * 3, lerp(m.y, GROUND - 26, s) + Math.sin(T * 17 + i * 2) * 4, 5 + s * 13, i % 3 ? '#ff8a3c' : '#ffd23f', 0); }
+        const cols = u.def.cap.couleurs || ['#ff8a3c', '#ffd23f'];   // souffle glacé du Dragon de givre (js/ages-caches.js)
+        for (let i = 0; i < 30; i++) { const s = i / 29; if (s > k || s < fin) continue; rond(lerp(m.x, x1, s) + Math.sin(T * 20 + i) * 3, lerp(m.y, GROUND - 26, s) + Math.sin(T * 17 + i * 2) * 4, 5 + s * 13, i % 3 ? cols[0] : cols[1], 0); }
       }
       if (type === 'bouclier' && cs.bou > 0) {
         const cy = GROUND - u.h * 0.5, r = u.h * 0.62;
@@ -11436,9 +11459,10 @@ window.PA = window.PA || {};
         this.el['hud-xp-text'].textContent = 'ÂGE MAX';
       }
       this.el['btn-evolve'].disabled = !b.canEvolve();
-      // Âge caché du Magma (js/magma.js) : quand la lave a tout recouvert, Évoluer devient Plonger.
-      const plonge = !!(b.plongeePossible && b.plongeePossible()), labelEvo = plonge ? 'Plonger dans le magma' : 'Évoluer';
-      this.el['btn-evolve'].classList.toggle('magma', plonge);
+      // Âges cachés (js/magma.js, js/ages-caches.js) : quand le phénomène a tout recouvert, Évoluer devient Plonger.
+      const pl = b.plongeeInfo ? b.plongeeInfo() : (b.plongeePossible && b.plongeePossible() ? { texte: 'Plonger dans le magma', cls: 'magma' } : null);
+      const labelEvo = pl ? pl.texte : 'Évoluer';
+      for (const k of ['magma', 'abysses', 'givre', 'neon']) this.el['btn-evolve'].classList.toggle(k, !!pl && pl.cls === k);
       if (this.el['btn-evolve'].textContent !== labelEvo) this.el['btn-evolve'].textContent = labelEvo;
       this.el['btn-evolve'].style.visibility = hasNext ? '' : 'hidden';   // garde sa place : le bandeau ne bouge pas
 
@@ -11644,6 +11668,7 @@ window.PA = window.PA || {};
             ${canAge ? `<div class="badge">NOUVEL ÂGE<br>disponible !</div>` : ''}
             <h1>TIME <br><em>BREAKERS</em></h1>
             <button class="play" data-action="start">JOUER</button>
+            ${PA.Mutateurs ? PA.Mutateurs.bouton(meta) : ''}
             <div class="decouvrir">${PA.Tuto ? '<button class="tuto" data-action="tuto">Tutoriel</button><button class="visite" data-action="guide">Visite des menus</button>' : ''}${PA.Modes ? this.boutonsModes(meta) : ''}</div>
             <div class="stats">${PA.Meta.playableAgeCount(meta)} âges sur ${C.ages.length} · Meilleur niveau ${meta.bestLevel} · Meilleure vague ${meta.bestWave} · ${meta.runs} run${meta.runs > 1 ? 's' : ''}<small>${D.name} : ${D.desc}</small></div>
           </div>`,
@@ -11658,6 +11683,7 @@ window.PA = window.PA || {};
         defi: PA.Modes && tab === 'defi' ? this.panneauDefi(meta) : '',
         hf: PA.HautsFaits && tab === 'hf' ? PA.HautsFaits.panneau(meta) : '',   // hauts faits (js/hauts-faits.js)
         bestiaire: PA.Bestiaire && tab === 'bestiaire' ? PA.Bestiaire.panneau(meta) : '',   // bestiaire (js/collection.js)
+        mutateurs: PA.Mutateurs && tab === 'mutateurs' ? PA.Mutateurs.panneau(meta) : '',   // mutateurs (js/mutateurs.js)
         pouvoirs: `<p class="camp-hint">Un pouvoir équipé par âge. Celui de contrôle est offert ; les trois autres s’achètent une fois l’âge débloqué.</p><div class="upgrades pouvoirs">${pouvoirs}</div>`,
       };
       const tabs = [['ups', '⚒', 'Améliorations'], ['ages', '⏳', 'Âges'], ['play', '⚔', 'Bataille'], ['elites', '★', 'Élites'], ['pouvoirs', '✦', 'Pouvoirs']]
@@ -11722,7 +11748,7 @@ window.PA = window.PA || {};
         tab: t => { this.campTab = t; this.showCamp(); },
         sous: s => { this.campSous = s; this.showCamp(); },
         // JOUER : qui n'a jamais fait le tutoriel se voit poser la question une fois (js/tuto.js).
-        start: () => { if (PA.Tuto && PA.Tuto.doitConfirmer()) return PA.Tuto.confirmer(); this.campTab = 'play'; game.newRun(); },
+        start: () => { if (PA.Tuto && PA.Tuto.doitConfirmer()) return PA.Tuto.confirmer(); this.campTab = 'play'; if (PA.Mutateurs) PA.Mutateurs.armer(meta); game.newRun(); },
         tuto: () => PA.Tuto.lancer(),
         // Boss rush et défi du jour (js/modes.js)
         lancerRush: () => { if (PA.Modes.rushOuvert(meta) && PA.Modes.rushEtapes(meta).length) PA.Modes.lancerRush(); },
@@ -11931,6 +11957,7 @@ window.PA = window.PA || {};
           <tr><td>Ennemis tués <span class="muted">(plafond ${Math.round(d.killsCap)})</span></td><td>+${d.kills.toFixed(1)}</td></tr>
           <tr><td>Bonus de rapidité</td><td>+${pct(d.speed)}</td></tr>
           <tr><td>Bonus outsider${d.gap ? ` (${d.gap} âge${d.gap > 1 ? 's' : ''} de retard)` : ''}</td><td>+${pct(d.outsider)}</td></tr>
+          ${d.mut ? `<tr><td>Mutateurs <span class="muted">(multiplie le tout)</span></td><td>×${(1 + d.mut).toFixed(2).replace('.', ',')}</td></tr>` : ''}
           <tr class="total"><td>Points mis à l’abri</td><td>+${fmt(d.total)} ✦</td></tr>
         </table>
         <p class="muted">${next}</p>
@@ -12287,7 +12314,8 @@ window.PA = window.PA || {};
       else if (t < P.speedSlow) speed = P.speedBonusMax * (P.speedSlow - t) / (P.speedSlow - P.speedFast);
       const gap = Math.max(0, b.enemyAge - run.age);
       const outsider = gap * P.outsiderPerAge;
-      const total = PA.Meta.bank(this.meta, (base + kills) * (1 + speed + outsider));
+      const mut = PA.Mutateurs ? PA.Mutateurs.bonus(run) : 0;   // mutateurs choisis avant la run (js/mutateurs.js)
+      const total = PA.Meta.bank(this.meta, (base + kills) * (1 + speed + outsider) * (1 + mut));
       run.ppLevels += total;
       run.levelsDone = n;
       this.meta.bestLevel = Math.max(this.meta.bestLevel, n);
@@ -12300,7 +12328,7 @@ window.PA = window.PA || {};
 
       this.blocked = true;
       PA.UI.showVictory({
-        n, time: t, base, kills, killsCap: b.killsPPCap, speed, outsider, gap, total,
+        n, time: t, base, kills, killsCap: b.killsPPCap, speed, outsider, gap, total, mut,
         last: n >= this.totalLevels,
         choices: this.pickRelics(3),
       });
@@ -12360,7 +12388,7 @@ window.PA = window.PA || {};
     levelDefeat(b, reason) {
       const run = this.run;
       const loss = PA.Meta.lossRate(this.meta);
-      const kept = PA.Meta.bank(this.meta, b.killsPP * (1 - loss));
+      const kept = PA.Meta.bank(this.meta, b.killsPP * (1 - loss) * (1 + (PA.Mutateurs ? PA.Mutateurs.bonus(run) : 0)));
       run.ppLevels += kept;
       run.ppLost += b.killsPP * loss;
       this.endRun(reason, { level: b.levelNumber });
@@ -12394,7 +12422,7 @@ window.PA = window.PA || {};
     retreat() {
       const b = this.battle;
       b.over = true;
-      this.run.ppAssault += PA.Meta.bank(this.meta, b.cagnotte);
+      this.run.ppAssault += PA.Meta.bank(this.meta, b.cagnotte * (1 + (PA.Mutateurs ? PA.Mutateurs.bonus(this.run) : 0)));
       this.run.assaultWave = b.wave.n;
       this.endRun('retreat', { wave: b.wave.n });
     },
@@ -12402,7 +12430,7 @@ window.PA = window.PA || {};
     assaultDefeat(b, reason) {
       const run = this.run;
       const loss = PA.Meta.lossRate(this.meta);
-      run.ppAssault += PA.Meta.bank(this.meta, b.cagnotte * (1 - loss));
+      run.ppAssault += PA.Meta.bank(this.meta, b.cagnotte * (1 - loss) * (1 + (PA.Mutateurs ? PA.Mutateurs.bonus(run) : 0)));
       run.ppLost += b.cagnotte * loss;
       run.assaultWave = Math.max(0, b.wave.n - 1);
       this.meta.bestWave = Math.max(this.meta.bestWave, run.assaultWave);

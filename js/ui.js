@@ -271,9 +271,10 @@ window.PA = window.PA || {};
         this.el['hud-xp-text'].textContent = 'ÂGE MAX';
       }
       this.el['btn-evolve'].disabled = !b.canEvolve();
-      // Âge caché du Magma (js/magma.js) : quand la lave a tout recouvert, Évoluer devient Plonger.
-      const plonge = !!(b.plongeePossible && b.plongeePossible()), labelEvo = plonge ? 'Plonger dans le magma' : 'Évoluer';
-      this.el['btn-evolve'].classList.toggle('magma', plonge);
+      // Âges cachés (js/magma.js, js/ages-caches.js) : quand le phénomène a tout recouvert, Évoluer devient Plonger.
+      const pl = b.plongeeInfo ? b.plongeeInfo() : (b.plongeePossible && b.plongeePossible() ? { texte: 'Plonger dans le magma', cls: 'magma' } : null);
+      const labelEvo = pl ? pl.texte : 'Évoluer';
+      for (const k of ['magma', 'abysses', 'givre', 'neon']) this.el['btn-evolve'].classList.toggle(k, !!pl && pl.cls === k);
       if (this.el['btn-evolve'].textContent !== labelEvo) this.el['btn-evolve'].textContent = labelEvo;
       this.el['btn-evolve'].style.visibility = hasNext ? '' : 'hidden';   // garde sa place : le bandeau ne bouge pas
 
@@ -479,6 +480,7 @@ window.PA = window.PA || {};
             ${canAge ? `<div class="badge">NOUVEL ÂGE<br>disponible !</div>` : ''}
             <h1>TIME <br><em>BREAKERS</em></h1>
             <button class="play" data-action="start">JOUER</button>
+            ${PA.Mutateurs ? PA.Mutateurs.bouton(meta) : ''}
             <div class="decouvrir">${PA.Tuto ? '<button class="tuto" data-action="tuto">Tutoriel</button><button class="visite" data-action="guide">Visite des menus</button>' : ''}${PA.Modes ? this.boutonsModes(meta) : ''}</div>
             <div class="stats">${PA.Meta.playableAgeCount(meta)} âges sur ${C.ages.length} · Meilleur niveau ${meta.bestLevel} · Meilleure vague ${meta.bestWave} · ${meta.runs} run${meta.runs > 1 ? 's' : ''}<small>${D.name} : ${D.desc}</small></div>
           </div>`,
@@ -493,6 +495,7 @@ window.PA = window.PA || {};
         defi: PA.Modes && tab === 'defi' ? this.panneauDefi(meta) : '',
         hf: PA.HautsFaits && tab === 'hf' ? PA.HautsFaits.panneau(meta) : '',   // hauts faits (js/hauts-faits.js)
         bestiaire: PA.Bestiaire && tab === 'bestiaire' ? PA.Bestiaire.panneau(meta) : '',   // bestiaire (js/collection.js)
+        mutateurs: PA.Mutateurs && tab === 'mutateurs' ? PA.Mutateurs.panneau(meta) : '',   // mutateurs (js/mutateurs.js)
         pouvoirs: `<p class="camp-hint">Un pouvoir équipé par âge. Celui de contrôle est offert ; les trois autres s’achètent une fois l’âge débloqué.</p><div class="upgrades pouvoirs">${pouvoirs}</div>`,
       };
       const tabs = [['ups', '⚒', 'Améliorations'], ['ages', '⏳', 'Âges'], ['play', '⚔', 'Bataille'], ['elites', '★', 'Élites'], ['pouvoirs', '✦', 'Pouvoirs']]
@@ -557,7 +560,7 @@ window.PA = window.PA || {};
         tab: t => { this.campTab = t; this.showCamp(); },
         sous: s => { this.campSous = s; this.showCamp(); },
         // JOUER : qui n'a jamais fait le tutoriel se voit poser la question une fois (js/tuto.js).
-        start: () => { if (PA.Tuto && PA.Tuto.doitConfirmer()) return PA.Tuto.confirmer(); this.campTab = 'play'; game.newRun(); },
+        start: () => { if (PA.Tuto && PA.Tuto.doitConfirmer()) return PA.Tuto.confirmer(); this.campTab = 'play'; if (PA.Mutateurs) PA.Mutateurs.armer(meta); game.newRun(); },
         tuto: () => PA.Tuto.lancer(),
         // Boss rush et défi du jour (js/modes.js)
         lancerRush: () => { if (PA.Modes.rushOuvert(meta) && PA.Modes.rushEtapes(meta).length) PA.Modes.lancerRush(); },
@@ -766,6 +769,7 @@ window.PA = window.PA || {};
           <tr><td>Ennemis tués <span class="muted">(plafond ${Math.round(d.killsCap)})</span></td><td>+${d.kills.toFixed(1)}</td></tr>
           <tr><td>Bonus de rapidité</td><td>+${pct(d.speed)}</td></tr>
           <tr><td>Bonus outsider${d.gap ? ` (${d.gap} âge${d.gap > 1 ? 's' : ''} de retard)` : ''}</td><td>+${pct(d.outsider)}</td></tr>
+          ${d.mut ? `<tr><td>Mutateurs <span class="muted">(multiplie le tout)</span></td><td>×${(1 + d.mut).toFixed(2).replace('.', ',')}</td></tr>` : ''}
           <tr class="total"><td>Points mis à l’abri</td><td>+${fmt(d.total)} ✦</td></tr>
         </table>
         <p class="muted">${next}</p>

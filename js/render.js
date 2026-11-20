@@ -71,6 +71,7 @@ window.PA = window.PA || {};
       if (backdrop) backdrop(ctx, t, dt, this);
       else this.background(ctx, pal, t, dt);
       if (b && PA.Magma && (b.volcan || b.lave)) PA.Magma.decor(ctx, b, t);
+      if (b && b.phen && PA.AgesCaches) PA.AgesCaches.decor(ctx, b, t);   // marée, hiver, surtension (js/ages-caches.js)
 
       if (!b) {
         this.base(ctx, 1, C.ages[0].base, null);

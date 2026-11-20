@@ -132,6 +132,11 @@ window.PA = window.PA || {};
     { id: 'coulee', t: 'Secrets', n: 2, secret: true, nom: 'Coulée de lave', desc: 'Fais déborder la lave sur le terrain.' },
     { id: 'enfant-magma', t: 'Secrets', n: 3, secret: true, nom: 'Enfant du magma', desc: 'Plonge dans l’âge caché du Magma.' },
     { id: 'seigneur-feu', t: 'Secrets', n: 4, secret: true, nom: 'Seigneur du feu', desc: 'Bats les trois champions du Magma.', cle: 'magmaCh', but: 3 },
+    // Secrets : les autres âges cachés (js/ages-caches.js)
+    { id: 'enfant-abysses', t: 'Secrets', n: 3, secret: true, ico: '🌊', nom: 'Enfant des abysses', desc: 'Plonge dans l’âge caché de l’Atlantide.' },
+    { id: 'enfant-givre', t: 'Secrets', n: 3, secret: true, ico: '❄️', nom: 'Enfant du givre', desc: 'Plonge dans l’âge caché de la glace.' },
+    { id: 'enfant-reseau', t: 'Secrets', n: 3, secret: true, ico: '⚡', nom: 'Enfant du réseau', desc: 'Plonge dans l’âge caché du néon.' },
+    { id: 'explorateur', t: 'Secrets', n: 4, secret: true, ico: '🧭', nom: 'Explorateur temporel', desc: 'Découvre les quatre âges cachés.' },
   ];
   const PAR_ID = Object.fromEntries(LISTE.map(h => [h.id, h]));
   const ICONES = { 'Progression': '⏳', 'Parties': '🎲', 'Combat': '⚔', 'Endurance': '🛡', 'Économie': '🪙', 'Tourelles': '🏰', 'Pouvoirs': '✦',
@@ -228,6 +233,8 @@ window.PA = window.PA || {};
       if (rush && rush.complets > 0) this.donner('rush-complet');
       if (meta.defi && meta.defi.dernierReussi) this.donner('defi-releve');
       if (meta.magma && meta.magma.trouve) this.donner('enfant-magma');
+      const AC = PA.AgesCaches;
+      if (AC) { for (const c of AC.LISTE) if (AC.decouvert(meta, c.cle)) this.donner(c.hf); if (AC.nbDecouverts(meta) >= 4) this.donner('explorateur'); }
       if (meta.bestWave >= 25) this.donner('vague-25');
       if (meta.bestWave >= 50) this.donner('vague-50');
       if (meta.bestWave >= 25 && meta.difficulty === 'difficile') this.donner('legende');
@@ -251,7 +258,7 @@ window.PA = window.PA || {};
       const hote = document.body;
       const el = document.createElement('div');
       el.className = 'hf-bandeau';
-      el.innerHTML = `<i>${ICONES[o.h.t] || '🏆'}</i><div><small>Haut fait${o.h.secret ? ' secret' : ''}</small><b>${o.h.nom}</b><span>${o.h.desc}</span></div>${o.gain ? `<em>+${o.gain} ✦</em>` : ''}`;
+      el.innerHTML = `<i>${o.h.ico || ICONES[o.h.t] || '🏆'}</i><div><small>Haut fait${o.h.secret ? ' secret' : ''}</small><b>${o.h.nom}</b><span>${o.h.desc}</span></div>${o.gain ? `<em>+${o.gain} ✦</em>` : ''}`;
       hote.appendChild(el);
       if (PA.Sons && PA.Sons.evolution && PA.Music && PA.Music.fx) { try { PA.Sons.evolution(0); } catch (e) { /* ignore */ } }
       requestAnimationFrame(() => el.classList.add('on'));
@@ -271,7 +278,7 @@ window.PA = window.PA || {};
           else { this.file.unshift(o); this.enCours = false; this.suivant(); }
         }, 200);
       }
-      const h = o.h, ico = ICONES[h.t] || '🏆', gain = o.gain ? `<em>+${o.gain} ✦</em>` : '';
+      const h = o.h, ico = h.ico || ICONES[h.t] || '🏆', gain = o.gain ? `<em>+${o.gain} ✦</em>` : '';
       const titre = `Haut fait${h.secret ? ' secret' : ''} !`;
       const el = document.createElement('div');
       const duree = 4300;
@@ -301,7 +308,7 @@ window.PA = window.PA || {};
             const v = Math.min(h.but, this.valeur(h.cle, meta));
             barre = `<div class="hf-barre"><div style="width:${v / h.but * 100}%"></div><span>${h.cle === 'heures' ? v.toFixed(1).replace('.', ',') : fmt(v)} / ${fmt(h.but)}</span></div>`;
           }
-          return `<div class="hf ${ok ? 'ok' : ''}"><i>${ok ? ICONES[t] : cache ? '?' : '🔒'}</i><div><b>${cache ? '???' : h.nom}</b><span>${cache ? 'Un secret à découvrir.' : h.desc}</span>${barre}</div><em>${ok ? '✓' : `+${GAINS[h.n]} ✦`}</em></div>`;
+          return `<div class="hf ${ok ? 'ok' : ''}"><i>${ok ? h.ico || ICONES[t] : cache ? '?' : '🔒'}</i><div><b>${cache ? '???' : h.nom}</b><span>${cache ? 'Un secret à découvrir.' : h.desc}</span>${barre}</div><em>${ok ? '✓' : `+${GAINS[h.n]} ✦`}</em></div>`;
         }).join('');
         return `<h3 class="hf-theme">${ICONES[t]} ${t} <small>${hs.filter(h => this.a(h.id)).length} / ${hs.length}</small></h3><div class="hf-grille">${cartes}</div>`;
       }).join('');
@@ -579,7 +586,10 @@ window.PA = window.PA || {};
   };
 
   // --- âge caché
-  if (M) M.surDecouverte = () => HF.donner('enfant-magma');
+  const AC = PA.AgesCaches;
+  const explorateur = b => { if (AC && AC.nbDecouverts(b.game.meta) >= 4) HF.donner('explorateur'); };
+  if (M) M.surDecouverte = b => { HF.donner('enfant-magma'); explorateur(b); };
+  if (AC) AC.surDecouverte = (b, c) => { HF.donner(c.hf); explorateur(b); };
 
   // --- camp
   const camp0 = PA.UI.showCamp;

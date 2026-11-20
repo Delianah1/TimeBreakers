@@ -228,7 +228,8 @@ window.PA = window.PA || {};
       else if (t < P.speedSlow) speed = P.speedBonusMax * (P.speedSlow - t) / (P.speedSlow - P.speedFast);
       const gap = Math.max(0, b.enemyAge - run.age);
       const outsider = gap * P.outsiderPerAge;
-      const total = PA.Meta.bank(this.meta, (base + kills) * (1 + speed + outsider));
+      const mut = PA.Mutateurs ? PA.Mutateurs.bonus(run) : 0;   // mutateurs choisis avant la run (js/mutateurs.js)
+      const total = PA.Meta.bank(this.meta, (base + kills) * (1 + speed + outsider) * (1 + mut));
       run.ppLevels += total;
       run.levelsDone = n;
       this.meta.bestLevel = Math.max(this.meta.bestLevel, n);
@@ -241,7 +242,7 @@ window.PA = window.PA || {};
 
       this.blocked = true;
       PA.UI.showVictory({
-        n, time: t, base, kills, killsCap: b.killsPPCap, speed, outsider, gap, total,
+        n, time: t, base, kills, killsCap: b.killsPPCap, speed, outsider, gap, total, mut,
         last: n >= this.totalLevels,
         choices: this.pickRelics(3),
       });
@@ -301,7 +302,7 @@ window.PA = window.PA || {};
     levelDefeat(b, reason) {
       const run = this.run;
       const loss = PA.Meta.lossRate(this.meta);
-      const kept = PA.Meta.bank(this.meta, b.killsPP * (1 - loss));
+      const kept = PA.Meta.bank(this.meta, b.killsPP * (1 - loss) * (1 + (PA.Mutateurs ? PA.Mutateurs.bonus(run) : 0)));
       run.ppLevels += kept;
       run.ppLost += b.killsPP * loss;
       this.endRun(reason, { level: b.levelNumber });
@@ -335,7 +336,7 @@ window.PA = window.PA || {};
     retreat() {
       const b = this.battle;
       b.over = true;
-      this.run.ppAssault += PA.Meta.bank(this.meta, b.cagnotte);
+      this.run.ppAssault += PA.Meta.bank(this.meta, b.cagnotte * (1 + (PA.Mutateurs ? PA.Mutateurs.bonus(this.run) : 0)));
       this.run.assaultWave = b.wave.n;
       this.endRun('retreat', { wave: b.wave.n });
     },
@@ -343,7 +344,7 @@ window.PA = window.PA || {};
     assaultDefeat(b, reason) {
       const run = this.run;
       const loss = PA.Meta.lossRate(this.meta);
-      run.ppAssault += PA.Meta.bank(this.meta, b.cagnotte * (1 - loss));
+      run.ppAssault += PA.Meta.bank(this.meta, b.cagnotte * (1 - loss) * (1 + (PA.Mutateurs ? PA.Mutateurs.bonus(run) : 0)));
       run.ppLost += b.cagnotte * loss;
       run.assaultWave = Math.max(0, b.wave.n - 1);
       this.meta.bestWave = Math.max(this.meta.bestWave, run.assaultWave);

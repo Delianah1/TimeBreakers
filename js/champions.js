@@ -257,7 +257,8 @@ window.PA = window.PA || {};
         for (const p of b.pu) {
           if (p.dead || p.x < x0 || p.x > u.x) continue;
           b.damageUnit(p, u.dmg * 0.8 * dt, true, 'pouvoir');
-          if (!p.dead && (!p.burn || p.burn.dps < u.dmg * 0.2)) p.burn = { dps: u.dmg * 0.2, t: 2 };
+          if (u.def.cap.gel) { if (!p.dead) p.chill = { t: 3, k: 0.5 }; }           // souffle glacé : ralentit au lieu de brûler
+          else if (!p.dead && (!p.burn || p.burn.dps < u.dmg * 0.2)) p.burn = { dps: u.dmg * 0.2, t: 2 };
         }
         if (x0 <= PF) { b.run.base.hp -= u.dmg * dt; b.shake = Math.max(b.shake, 0.08); }
         if (cs.feu <= 0) u.ancre = false;
@@ -1146,7 +1147,8 @@ window.PA = window.PA || {};
       const type = u.def.cap.type;
       if (type === 'souffle' && cs.feu > 0) {
         const m = point(u, 'bouche'), x1 = Math.max(PF - 10, u.x - u.w / 2 - 440), k = Math.min(1, (1.2 - cs.feu) * 5), fin = cs.feu < 0.2 ? 1 - cs.feu / 0.2 : 0;
-        for (let i = 0; i < 30; i++) { const s = i / 29; if (s > k || s < fin) continue; rond(lerp(m.x, x1, s) + Math.sin(T * 20 + i) * 3, lerp(m.y, GROUND - 26, s) + Math.sin(T * 17 + i * 2) * 4, 5 + s * 13, i % 3 ? '#ff8a3c' : '#ffd23f', 0); }
+        const cols = u.def.cap.couleurs || ['#ff8a3c', '#ffd23f'];   // souffle glacé du Dragon de givre (js/ages-caches.js)
+        for (let i = 0; i < 30; i++) { const s = i / 29; if (s > k || s < fin) continue; rond(lerp(m.x, x1, s) + Math.sin(T * 20 + i) * 3, lerp(m.y, GROUND - 26, s) + Math.sin(T * 17 + i * 2) * 4, 5 + s * 13, i % 3 ? cols[0] : cols[1], 0); }
       }
       if (type === 'bouclier' && cs.bou > 0) {
         const cy = GROUND - u.h * 0.5, r = u.h * 0.62;

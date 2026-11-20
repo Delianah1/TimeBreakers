@@ -95,7 +95,13 @@ window.PA = window.PA || {};
     ages(meta) {
       const l = C.ages.map((age, a) => ({ age, a, ch: PA.Champions.DEFS[a] || [] }));
       const M = PA.Magma;
-      if (M && M.decouvert(meta)) l.splice(2, 0, { age: M.MAGMA, a: 1, ch: M.CHAMPIONS, cache: true });
+      if (M && M.decouvert(meta)) l.splice(2, 0, { age: M.MAGMA, a: 1, ch: M.CHAMPIONS, cache: true, ico: '🌋' });
+      // les autres âges cachés (js/ages-caches.js), chacun juste après l'âge dont il prend la place
+      const AC = PA.AgesCaches;
+      if (AC) for (const c of AC.LISTE) if (AC.decouvert(meta, c.cle)) {
+        const pos = l.findIndex(o => !o.cache && o.a === c.idx) + 1;
+        l.splice(pos, 0, { age: c.age, a: c.idx, ch: c.champions, cache: true, ico: c.ico });
+      }
       return l;
     },
     panneau(meta) {
@@ -108,7 +114,7 @@ window.PA = window.PA || {};
         return `<div class="be-carte${connu ? '' : ' inconnu'}"><img alt="" src="${img}"><div><b>${connu ? def.name : '???'}</b>${connu ? lignes : '<span class="muted">Pas encore croisé</span>'}</div></div>`;
       };
       const n = (k, id) => S.s[k][id] || 0;
-      const corps = this.ages(meta).map(({ age, a, ch, cache }) => {
+      const corps = this.ages(meta).map(({ age, a, ch, cache, ico }) => {
         const base = !cache && a < jouables;   // un âge que tu as joué compte comme déjà vu (sauvegardes d'avant le bestiaire)
         const unites = age.units.map(d => {
           const role = d.kind === 'melee' ? 'mêlée' : `portée ${d.range}`;
@@ -120,7 +126,7 @@ window.PA = window.PA || {};
           const med = MO ? MO.medaille(meta, d.id) : 0;
           return carte('unit', d, med || S.s.vu[d.id], `<span class="muted">${d.desc || ''}</span><em>Abattu : ${fmt(n('tue', d.id))} fois</em>`);
         }).join('');
-        return `<h3 class="hf-theme">${cache ? '🌋 ' : ''}${age.name}</h3>
+        return `<h3 class="hf-theme">${cache ? ico + ' ' : ''}${age.name}</h3>
           <div class="be-grille">${unites}${tourelles}${champions}</div>`;
       }).join('');
       return `<p class="camp-hint">Tout ce que tu as croisé, d’un âge à l’autre, avec tes compteurs. <b>${vus} / ${total}</b> fiches découvertes.</p><div class="be-liste">${corps}</div>`;

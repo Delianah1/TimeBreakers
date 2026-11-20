@@ -643,17 +643,18 @@ window.PA = window.PA || {};
     // une troupe attaque
     attaque(u) {
       if (!this.pret() || !u || !u.def) return;
-      const recette = TROUPES[u.def.id];
+      const id = TROUPES[u.def.id] ? u.def.id : u.def.son;   // son : une troupe des âges cachés emprunte le son d'une autre
+      const recette = TROUPES[id];
       if (!recette) return;
       const B = this.banc(), now = B.ctx.currentTime;
       this.recents = this.recents.filter(x => now - x < 0.12);
       if (this.recents.length >= 5) return;                                    // pas plus de 5 sons en 120 ms
-      if (this.dernier[u.def.id] && now - this.dernier[u.def.id] < 0.07) return;   // ni la même troupe en rafale
-      this.recents.push(now); this.dernier[u.def.id] = now;
+      if (this.dernier[id] && now - this.dernier[id] < 0.07) return;   // ni la même troupe en rafale
+      this.recents.push(now); this.dernier[id] = now;
       const v0 = u.side === 1 ? 1 : 0.7;
       const pan = clamp((u.x / 1280) * 1.4 - 0.7, -0.7, 0.7);
-      if (this.modeReel() && this.jouerReel(u.def.id, B, now + 0.005, v0, { pan })) return;
-      this.jouer(B, recette, now + 0.005, v0 * (NIVEAUX[u.def.id] || 1), { pan });
+      if (this.modeReel() && this.jouerReel(id, B, now + 0.005, v0, { pan })) return;
+      this.jouer(B, recette, now + 0.005, v0 * (NIVEAUX[id] || 1), { pan });
     },
     jouer(B, recette, t, v, o) {
       for (const [fam, p, dt] of recette) FAM[fam](B, t + dt, { v, ...p }, o || {});
@@ -662,16 +663,17 @@ window.PA = window.PA || {};
     // une tourelle tire (def : sa définition dans la config ; x : sa position)
     tourelle(def, side, x) {
       if (!this.pret() || !def) return;
-      const recette = TOURELLES[def.id];
+      const id = TOURELLES[def.id] ? def.id : def.son;
+      const recette = TOURELLES[id];
       if (!recette) return;
       const B = this.banc(), now = B.ctx.currentTime;
       this.recentsT = (this.recentsT || []).filter(y => now - y < 0.12);
       if (this.recentsT.length >= 3) return;                                      // pas plus de 3 tirs de tourelle en 120 ms
-      if (this.dernier['t:' + def.id] && now - this.dernier['t:' + def.id] < 0.1) return;
-      this.recentsT.push(now); this.dernier['t:' + def.id] = now;
+      if (this.dernier['t:' + id] && now - this.dernier['t:' + id] < 0.1) return;
+      this.recentsT.push(now); this.dernier['t:' + id] = now;
       const v0 = 0.6 * (side === 1 ? 1 : 0.75), o = { pan: clamp((x / 1280) * 1.4 - 0.7, -0.7, 0.7) };
-      if (this.modeReel() && this.jouerReel('t:' + def.id, B, now + 0.005, v0, o)) return;
-      this.jouer(B, recette, now + 0.005, v0 * (NIVEAUX_TOURELLES[def.id] || 1), o);
+      if (this.modeReel() && this.jouerReel('t:' + id, B, now + 0.005, v0, o)) return;
+      this.jouer(B, recette, now + 0.005, v0 * (NIVEAUX_TOURELLES[id] || 1), o);
     },
 
     // le pouvoir spécial de l'âge lancé

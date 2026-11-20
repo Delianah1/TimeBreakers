@@ -97,7 +97,7 @@ window.PA = window.PA || {};
   const listes = {};
 
   const P = PA.Pouvoirs = {
-    TABLE, GENRES,
+    TABLE, GENRES, ORIGINE,
     // Les quatre pouvoirs d'un âge : [contrôle, origine, frappe, renfort].
     liste(ageIdx) {
       const age = C.ages[ageIdx];
