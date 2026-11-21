@@ -197,15 +197,55 @@
   };
 
   /* ---------------------------------------------------- projectiles, pouvoir */
+  // Projectiles au trait des images Gemini de l'âge (contour sombre épais, reflet clair) :
+  // carreau, pierre du mangonneau, boule de poix de la catapulte enflammée, huile bouillante.
   A.projectiles.bolt = function (ctx, p, dir) {
     ctx.translate(p.x, p.y); ctx.rotate(dir);
-    line(ctx, [-14, 0, 0, 0], '#5a4630', 2);
-    blob(ctx, STEEL, () => { ctx.moveTo(4.5, 0); ctx.lineTo(-2, -2.6); ctx.lineTo(-2, 2.6); }, 0.7);
-    ctx.fillStyle = '#c0392b'; ctx.fillRect(-15, -2, 4.5, 4);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#21180f'; ctx.lineWidth = 3.6; ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(-1, 0); ctx.stroke();
+    ctx.strokeStyle = '#a77a45'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(-14.5, 0); ctx.lineTo(-1, 0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(-2, -3.2); ctx.lineTo(-1, 0); ctx.lineTo(-2, 3.2); ctx.closePath();
+    ctx.fillStyle = '#c9ced6'; ctx.fill(); ctx.strokeStyle = '#21180f'; ctx.lineWidth = 1.3; ctx.stroke();
+    ctx.fillStyle = '#e8e1cf';
+    ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(-19, -3.5); ctx.lineTo(-12, -0.5); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(-19, 3.5); ctx.lineTo(-12, 0.5); ctx.closePath(); ctx.fill(); ctx.stroke();
   };
-  A.projectiles.oil = function (ctx, p) {
-    ctx.fillStyle = '#2f2418'; ctx.beginPath(); ctx.moveTo(p.x - 5, p.y + 1); ctx.quadraticCurveTo(p.x - 5.5, p.y - 5, p.x, p.y - 9); ctx.quadraticCurveTo(p.x + 5.5, p.y - 5, p.x + 5, p.y + 1); ctx.quadraticCurveTo(p.x, p.y + 6.5, p.x - 5, p.y + 1); ctx.fill();
-    disc(ctx, p.x - 1.6, p.y - 1.5, 1.4, 'rgba(255,255,255,0.3)');
+  A.projectiles['pierre-mangonneau'] = function (ctx, p, dir) {
+    // traînée de poussière, puis la pierre grise anguleuse de l'image, qui tourne
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(dir);
+    ctx.fillStyle = 'rgba(205,190,160,0.35)';
+    for (const [x, r] of [[-10, 4.5], [-17, 3.5], [-23, 2.5]]) { ctx.beginPath(); ctx.arc(x, 0, r, 0, TAU); ctx.fill(); }
+    ctx.restore();
+    ctx.translate(p.x, p.y); ctx.rotate((p.x + p.y) * 0.06);
+    ctx.beginPath();
+    [[8, 0], [5, -6], [-2, -8], [-7, -4], [-8, 2], [-4, 7], [3, 7], [7, 4]].forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath(); ctx.fillStyle = '#8c8a86'; ctx.fill();
+    ctx.lineJoin = 'round'; ctx.strokeStyle = '#2b2622'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#b4b1ab'; ctx.beginPath(); ctx.moveTo(-5, -4); ctx.lineTo(-1, -6.5); ctx.lineTo(3, -4.5); ctx.lineTo(-2, -2); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#5e5a55'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(1, 1); ctx.lineTo(4, 4); ctx.moveTo(-3, 2); ctx.lineTo(-4, 5); ctx.stroke();
+  };
+  A.projectiles.poix = function (ctx, p, dir) {
+    // boule de poix en feu : traînée de flammes vacillante, boule sombre cernée, cœur incandescent
+    const fl = 0.85 + Math.sin(now() * 22 + p.x) * 0.15;
+    ctx.translate(p.x, p.y); ctx.rotate(dir);
+    ctx.fillStyle = 'rgba(255,120,30,0.55)';
+    ctx.beginPath(); ctx.moveTo(4, -6); ctx.quadraticCurveTo(-14 * fl, -7, -24 * fl, 0); ctx.quadraticCurveTo(-14 * fl, 7, 4, 6); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffb02e';
+    ctx.beginPath(); ctx.moveTo(3, -4); ctx.quadraticCurveTo(-9 * fl, -4, -15 * fl, 0); ctx.quadraticCurveTo(-9 * fl, 4, 3, 4); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, 6, 0, TAU); ctx.fillStyle = '#3a2a1e'; ctx.fill();
+    ctx.strokeStyle = '#1e1510'; ctx.lineWidth = 1.6; ctx.stroke();
+    ctx.fillStyle = '#ffd25a'; ctx.beginPath(); ctx.arc(1.5, -1.5, 3.2, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#fff3c4'; ctx.beginPath(); ctx.arc(2.2, -2.2, 1.3, 0, TAU); ctx.fill();
+  };
+  A.projectiles.oil = function (ctx, p, dir) {
+    // giclée d'huile bouillante : goutte sombre luisante, gouttelettes, un peu de vapeur
+    ctx.fillStyle = 'rgba(235,225,200,0.45)'; ctx.beginPath(); ctx.arc(p.x - 4, p.y - 8, 3.5, 0, TAU); ctx.fill();
+    ctx.translate(p.x, p.y); ctx.rotate(dir);
+    ctx.beginPath(); ctx.moveTo(7, 0); ctx.quadraticCurveTo(2, -6, -5, -4); ctx.quadraticCurveTo(-9, 0, -5, 4); ctx.quadraticCurveTo(2, 6, 7, 0); ctx.closePath();
+    ctx.fillStyle = '#5a3c16'; ctx.fill(); ctx.strokeStyle = '#1e1408'; ctx.lineWidth = 1.6; ctx.stroke();
+    ctx.fillStyle = '#e0a640'; ctx.beginPath(); ctx.ellipse(1, -2, 3, 1.3, -0.3, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#5a3c16';
+    for (const [x, y, r] of [[-11, -3, 1.8], [-14, 2, 1.4], [-9, 4, 1.2]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
   };
   // Volée de flèches (pouvoir)
   A.drops.arrow = function (ctx, d) {

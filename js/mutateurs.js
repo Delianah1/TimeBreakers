@@ -16,13 +16,13 @@ window.PA = window.PA || {};
   const MAX = 2, PARTIES = 5;   // parties à jouer avec tous les âges avant l'ouverture
 
   const LISTE = [
-    { id: 'presses', ico: '💨', nom: 'Ennemis pressés', desc: 'Les ennemis avancent 30 % plus vite.', bonus: 0.2 },
-    { id: 'blindes', ico: '🛡', nom: 'Ennemis blindés', desc: 'Les ennemis ont 40 % de PV en plus.', bonus: 0.25 },
-    { id: 'furieux', ico: '♛', nom: 'Champions furieux', desc: 'Les champions ennemis ont 60 % de PV et de dégâts en plus.', bonus: 0.15 },
-    { id: 'tresor', ico: '💰', nom: 'Trésor fragile', desc: 'Les ennemis rapportent deux fois plus d’or, mais ta base a moitié moins de PV.', bonus: 0.15 },
-    { id: 'verre', ico: '🗡', nom: 'Canons de verre', desc: 'Tes unités frappent 50 % plus fort, mais ont 40 % de PV en moins.', bonus: 0.1 },
-    { id: 'remparts', ico: '🚫', nom: 'Sans remparts', desc: 'Aucune tourelle pendant toute la partie.', bonus: 0.3 },
-    { id: 'disette', ico: '🥖', nom: 'Disette', desc: 'Les ennemis rapportent 40 % d’or en moins.', bonus: 0.2 },
+    { id: 'presses', ico: '💨', nom: 'Ennemis pressés', desc: 'Les ennemis avancent 30 % plus vite.', bonus: 0.35 },
+    { id: 'blindes', ico: '🛡', nom: 'Ennemis blindés', desc: 'Les ennemis ont 40 % de PV en plus.', bonus: 0.15 },
+    { id: 'furieux', ico: '♛', nom: 'Champions furieux', desc: 'Les champions ennemis ont 60 % de PV et de dégâts en plus.', bonus: 0.2 },
+    { id: 'tresor', ico: '💰', nom: 'Trésor fragile', desc: 'Les ennemis rapportent deux fois plus d’or, mais ta base a moitié moins de PV.', bonus: 0.05 },
+    { id: 'verre', ico: '🗡', nom: 'Canons de verre', desc: 'Tes unités frappent 50 % plus fort, mais ont 40 % de PV en moins.', bonus: 0.05 },
+    { id: 'remparts', ico: '🚫', nom: 'Sans remparts', desc: 'Aucune tourelle pendant toute la partie.', bonus: 0.6 },
+    { id: 'disette', ico: '🥖', nom: 'Disette', desc: 'Les ennemis rapportent 40 % d’or en moins.', bonus: 0.15 },
   ];
   const PAR_ID = Object.fromEntries(LISTE.map(m => [m.id, m]));
   const pct = x => Math.round(x * 100) + ' %';

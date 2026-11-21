@@ -47,8 +47,76 @@ window.PA = window.PA || {};
     const im = image('medieval-fond');
     if (!im) return fond0(ctx, t, dt, R);
     peindre(ctx, im, 1);
+    ble(ctx, t);
+    moulin(ctx, t);
     ciel(ctx, t, dt || 0);
   };
+
+  // ------------------------------------------------------------ moulin (ailes qui tournent)
+  // Les ailes ont été retirées de l'image (outils/decor-medieval.js) ; elles sont dessinées ici.
+  const MOYEU = [1165.8, 390.9];   // dans l'image à 1360 px
+  function moulin(ctx, t) {
+    const x = MOYEU[0] - 40, y = MOYEU[1] + GROUND - PIEDS, a = t * 0.7;
+    ctx.save(); ctx.translate(x, y);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    // chapeau de la tour, derrière les ailes
+    ctx.fillStyle = '#b98c5e'; ctx.strokeStyle = '#4a3222'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-13, 9); ctx.lineTo(-10, -5); ctx.quadraticCurveTo(0, -15, 10, -5); ctx.lineTo(13, 9); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // Ailes comme dans le GIF animé du fond (Gemini) : de larges planches crème, pleines du moyeu
+    // au bout, une longeron sombre au milieu, des traverses et des clous.
+    const R0 = 6, R1 = 56, L2 = 8;
+    for (let k = 0; k < 4; k++) {
+      ctx.save(); ctx.rotate(a + k * Math.PI / 2);
+      ctx.fillStyle = '#dcc29c'; ctx.strokeStyle = '#4e3626'; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.rect(R0, -L2, R1 - R0, L2 * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(150,105,60,0.22)'; ctx.fillRect(R0, 1, R1 - R0, L2 - 1);   // ombre du bas
+      ctx.strokeStyle = '#9a7650'; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      for (let g = R0 + 10; g < R1 - 2; g += 10) { ctx.moveTo(g, -L2 + 1.5); ctx.lineTo(g, L2 - 1.5); }
+      ctx.stroke();
+      ctx.strokeStyle = '#7a5a3c'; ctx.lineWidth = 2.6;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(R1, 0); ctx.stroke();   // longeron
+      ctx.fillStyle = '#6b4a2c';
+      for (let g = R0 + 5; g < R1; g += 10) { ctx.fillRect(g - 0.8, -L2 + 2.4, 1.6, 1.6); ctx.fillRect(g - 0.8, L2 - 4, 1.6, 1.6); }
+      ctx.restore();
+    }
+    ctx.fillStyle = '#6b4a2c'; ctx.strokeStyle = '#3a2618'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ------------------------------------------------------------ champs de blé (rafales de vent)
+  // Des bandes claires et sombres glissent sur le blé, découpées par le masque des champs.
+  const BLE = { y0: 410, y1: 606, k: 0.5, cv: null };   // rangées de l'image à 1360 px, demi-résolution
+  function ble(ctx, t) {
+    const m = image('medieval-ble');
+    if (!m) return;
+    const B = BLE, w = Math.round(LARGE * B.k), h = Math.round((B.y1 - B.y0) * B.k);
+    if (!B.cv) { B.cv = document.createElement('canvas'); B.cv.width = w; B.cv.height = h; }
+    const c = B.cv.getContext('2d');
+    c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, w, h);
+    // rafales : bandes penchées qui avancent vers la droite
+    const bande = (x, larg, coul, a) => {
+      const g = c.createLinearGradient(x, 0, x + larg, 0);
+      g.addColorStop(0, coul + '0)'); g.addColorStop(0.5, coul + a + ')'); g.addColorStop(1, coul + '0)');
+      c.fillStyle = g; c.fillRect(x, 0, larg, h);
+    };
+    c.save(); c.transform(1, 0, -0.6, 1, h * 0.6, 0);   // bandes penchées dans le sens du vent
+    for (let i = 0; i < 7; i++) {   // rafales claires, de vitesses un peu différentes
+      const x = ((t * (42 + (i % 3) * 7) + i * 215) % 1600) - 160;
+      bande(x * B.k, (60 + (i % 2) * 40) * B.k, 'rgba(255,246,200,', 0.45);
+    }
+    for (let i = 0; i < 4; i++) {   // creux plus sombres entre deux rafales
+      const x = ((t * 36 + i * 400 + 110) % 1600) - 160;
+      bande(x * B.k, 70 * B.k, 'rgba(130,85,15,', 0.22);
+    }
+    c.restore();
+    c.globalCompositeOperation = 'destination-in';
+    c.drawImage(m, 0, B.y0, m.width, B.y1 - B.y0, 0, 0, w, h);
+    const s = LARGE / m.width;
+    ctx.drawImage(B.cv, -40, GROUND - PIEDS * s + B.y0 * s, LARGE, (B.y1 - B.y0) * s);
+  }
 
   // ------------------------------------------------------------ ciel animé (par-dessus l'image)
   // Quelques nuages qui dérivent lentement, dans le style de l'image (blancs, contour bleu-gris),

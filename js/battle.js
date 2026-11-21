@@ -32,7 +32,7 @@ window.PA = window.PA || {};
   // Couleur des explosions à zone, selon le projectile
   const SPLASH_COLOR = { fireball: '#ff9a3c', oil: '#3b2a1a', mortar: '#ffb057', rocket: '#ff8a3c', plasma: '#7ef0c8',
     lava: '#ff6a2a', barrel: '#ff9a3c', lightning: '#bfe8ff', spore: '#9cff5a', flame: '#ff7a22', psi: '#d49bff',
-    jar: '#c9773a', steambomb: '#ffc27a', boiler: '#e8e2da' };
+    jar: '#c9773a', steambomb: '#ffc27a', boiler: '#e8e2da', poix: '#ff9a3c', 'pierre-mangonneau': '#b9a58a' };
 
   function pickWeighted(weights) {
     const total = weights.reduce((s, w) => s + w, 0);
@@ -125,8 +125,8 @@ window.PA = window.PA || {};
         this.enemyTurrets = (L.enemyTurrets[a][b] || []).map(idx => ({ age: a, idx, cd: 1 }));
         this.isBoss = b + 1 === L.bossLevel;
         // Ruée d'ouverture : les premières unités ennemies du niveau sont « enragées » (voir levels.rush).
-        // Pas de ruée au tout premier niveau de la run : le temps de prendre ses marques.
-        this.rushLeft = L.rush && D.rush && this.levelNumber > 1 ? L.rush.units[b] || 0 : 0;
+        // Pas de ruée avant le niveau D.rushFrom (2 par défaut) : le temps de prendre ses marques.
+        this.rushLeft = L.rush && D.rush && this.levelNumber >= (D.rushFrom || 2) ? L.rush.units[b] || 0 : 0;
         this.rushTotal = this.rushLeft;
         this.ai = { gold: L.enemyStartGold[a], income: L.enemyIncome[a][b], pick: null, champT: L.championFirst };
         const P = C.prestige;

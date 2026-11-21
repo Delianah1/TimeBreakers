@@ -175,11 +175,11 @@ PA.CONFIG = {
         { id: 'chevalier', name: 'Chevalier', kind: 'melee', cost: 3150, hp: 2330, dmg: 240, interval: 1.2, reach: 12, speed: 60, train: 3.0, w: 52, h: 64,
           look: { body: 'horse', weapon: 'lance', helmet: true }, desc: 'Charge lourde' },
         { id: 'mangonneau', name: 'Mangonneau', kind: 'ranged', elite: true, cost: 1200, hp: 959, dmg: 244, interval: 1.8, range: 250, speed: 30, train: 3.0, w: 56, h: 46,
-          look: { body: 'siege' }, projectile: { look: 'boulder', speed: 380, arc: true, splash: 55 }, desc: 'Engin de siège, tir en zone' },
+          look: { body: 'siege' }, projectile: { look: 'pierre-mangonneau', speed: 380, arc: true, splash: 55 }, desc: 'Engin de siège, tir en zone' },
       ],
       turrets: [
         { id: 'baliste', name: 'Baliste', cost: 4500, dmg: 218, interval: 1.2, range: 400, proj: 'bolt', projSpeed: 700 },
-        { id: 'catapulte-feu', name: 'Catapulte enflammée', cost: 6750, dmg: 242, interval: 1.8, range: 420, proj: 'fireball', projSpeed: 380, splash: 55, arc: true,
+        { id: 'catapulte-feu', name: 'Catapulte enflammée', cost: 6750, dmg: 242, interval: 1.8, range: 420, proj: 'poix', shape: 'fireball', projSpeed: 380, splash: 55, arc: true,
           burn: { dps: 48, duration: 3 } },
         { id: 'huile', name: "Chaudron d'huile", cost: 9000, dmg: 88, interval: 0.5, range: 120, proj: 'oil', projSpeed: 300, splash: 70, arc: true },
       ],
@@ -414,8 +414,11 @@ PA.CONFIG = {
   difficulties: {
     facile: { name: 'Facile', desc: 'Les ennemis restent à distance : idéal pour découvrir le jeu.',
       rush: false, enemyStat: 1, enemyStatPerAge: 0, repair: 0.30 },
-    difficile: { name: 'Difficile', desc: 'Ruée ennemie à chaque niveau, ennemis bien plus forts d’âge en âge, base moins réparée : chaque erreur se paie.',
-      rush: true, enemyStat: 1.3, enemyStatPerAge: 0.2, repair: 0.15 },
+    // Correctif (21/11, simulateur, campagnes depuis une sauvegarde vierge) : à ×1,3 dès le Jurassique et ruée
+    // dès le niveau 2, le robot perdait aux niveaux 1-2 pendant 57 parties. Avec ×1,0 au départ (+0,23 par âge,
+    // l'Alien reste à ×3,3) et la ruée à partir du niveau 6 : tout débloqué en 65 parties, 46 h (×2,1 le facile).
+    difficile: { name: 'Difficile', desc: 'Ruée ennemie dès l’âge de pierre, ennemis bien plus forts d’âge en âge, base moins réparée : chaque erreur se paie.',
+      rush: true, rushFrom: 6, enemyStat: 1.0, enemyStatPerAge: 0.23, repair: 0.15 },
   },
 
   // --- Niveaux (5 par âge ; les ennemis appartiennent à l'âge du bloc) -----
