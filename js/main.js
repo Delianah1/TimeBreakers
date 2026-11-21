@@ -174,6 +174,8 @@ window.PA = window.PA || {};
       this.refreshBaseMax();
       this.run.base.hp = this.run.base.maxHp;
       meta.runs++;
+      // Parties lancées avec tous les âges débloqués (ouverture des mutateurs, js/mutateurs.js).
+      if (this.playableAges >= C.ages.length) meta.runsTousAges = (meta.runsTousAges || 0) + 1;
       PA.Meta.save(meta);
       // On garde la vitesse choisie à la run précédente, dans la limite de ce qui est acheté.
       this.speed = Math.min(this.speed, PA.Meta.maxSpeed(meta));

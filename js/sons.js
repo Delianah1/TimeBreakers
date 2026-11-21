@@ -709,6 +709,21 @@ window.PA = window.PA || {};
       PA.Music.duck(2.1, 0.3);
     },
 
+    // achat au camp (amélioration, pouvoir, élite, âge, vitesse) : tintement de pièces, deux notes qui montent.
+    // gros : achat important (un âge) : une troisième note et un peu d'écho.
+    achat(gros) {
+      if (!this.pret()) return;
+      const B = this.banc(), t = B.ctx.currentTime + 0.01;
+      const ding = (t0, f, v) => {
+        osc(B, { t: t0, type: 'sine', f0: f, d: 0.32, vol: 0.18 * v, rev: gros ? 0.35 : 0.15 });
+        osc(B, { t: t0, type: 'sine', f0: f * 2.76, d: 0.12, vol: 0.05 * v });   // partiel métallique
+      };
+      bruit(B, { t, d: 0.05, type: 'highpass', f0: 6000, vol: 0.05 });           // cliquetis
+      ding(t, 1318, 0.9);           // mi
+      ding(t + 0.07, 1760, 1);      // la
+      if (gros) ding(t + 0.15, 2637, 0.9);
+    },
+
     // essai du son d'une tourelle (page d'écoute)
     apercuTourelle(id) {
       if (!this.pret() || !TOURELLES[id]) return;

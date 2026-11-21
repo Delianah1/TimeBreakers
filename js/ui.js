@@ -556,7 +556,15 @@ window.PA = window.PA || {};
         </div>
         <div class="camp-body ${tab === 'play' ? '' : 'list'}">${tab === 'aide' ? `<div>${aide}</div>` : bodies[tab]}</div>
         <nav class="tabs">${tabs}</nav>
-      `, {
+      `, (() => {
+      // Un achat réussi (le solde a baissé) fait tinter des pièces (js/sons.js).
+      const achat = (fn, gros) => {
+        const avant = meta.balance;
+        fn();
+        if (meta.balance < avant && PA.Sons && PA.Sons.achat) PA.Sons.achat(gros);
+        this.showCamp();
+      };
+      return {
         tab: t => { this.campTab = t; this.showCamp(); },
         sous: s => { this.campSous = s; this.showCamp(); },
         // JOUER : qui n'a jamais fait le tutoriel se voit poser la question une fois (js/tuto.js).
@@ -585,18 +593,19 @@ window.PA = window.PA || {};
           PA.Pouvoirs.toutDebloquer(meta);
           PA.Meta.save(meta); this.showCamp();
         },
-        buyAge: () => { PA.Meta.buyAge(meta); this.showCamp(); },
-        buy: id => { PA.Meta.buyUpgrade(meta, id); this.showCamp(); },
-        buyElite: i => { PA.Meta.buyElite(meta, Number(i)); this.showCamp(); },
-        acheterPouvoir: a => { const [i, id] = a.split('|'); PA.Pouvoirs.acheter(meta, Number(i), id); this.showCamp(); },
+        buyAge: () => achat(() => PA.Meta.buyAge(meta), true),
+        buy: id => achat(() => PA.Meta.buyUpgrade(meta, id)),
+        buyElite: i => achat(() => PA.Meta.buyElite(meta, Number(i))),
+        acheterPouvoir: a => { const [i, id] = a.split('|'); achat(() => PA.Pouvoirs.acheter(meta, Number(i), id)); },
         equiperPouvoir: a => { const [i, id] = a.split('|'); PA.Pouvoirs.equiper(meta, Number(i), id); this.showCamp(); },
-        buySpeed: () => { PA.Meta.buySpeed(meta); this.showCamp(); },
+        buySpeed: () => achat(() => PA.Meta.buySpeed(meta)),
         reset: (arg, el) => {
           if (el.dataset.confirm) { game.meta = PA.Meta.reset(meta.difficulty); this.showCamp(); return; }
           el.dataset.confirm = '1';
           el.textContent = 'Appuie encore pour tout effacer';
         },
-      }, true);
+      };
+      })(), true);
       const vol = document.getElementById('vol-musique');
       if (vol) vol.oninput = e => PA.Music.regler(e.target.value / 100);
       const volFx = document.getElementById('vol-effets');

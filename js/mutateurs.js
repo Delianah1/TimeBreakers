@@ -3,7 +3,9 @@
    (ou plus étrange), en échange d'un bonus sur TOUT le prestige mis à l'abri pendant la partie
    (niveaux, kills, assaut final). Les bonus s'additionnent : +20 % et +30 % font ×1,5.
 
-   Ouverts une fois le premier âge terminé (meilleur niveau ≥ 5). Pas en boss rush, défi du jour ni tutoriel.
+   Ouverts seulement en mode Facile, une fois les 11 âges débloqués ET 5 parties jouées avec tous les âges
+   (meta.runsTousAges, compté par game.newRun dans js/main.js). Jamais en mode Difficile.
+   Pas en boss rush, défi du jour ni tutoriel.
    Sauvegarde : meta.mutateurs = [ids] (le choix est gardé d'une partie à l'autre) ;
    run.mutateurs = [ids] : ceux de la partie en cours (posés au lancement, par le bouton JOUER).
    ========================================================================= */
@@ -11,7 +13,7 @@ window.PA = window.PA || {};
 
 (function () {
   const C = PA.CONFIG;
-  const MAX = 2, OUVERTURE = 5;
+  const MAX = 2, PARTIES = 5;   // parties à jouer avec tous les âges avant l'ouverture
 
   const LISTE = [
     { id: 'presses', ico: '💨', nom: 'Ennemis pressés', desc: 'Les ennemis avancent 30 % plus vite.', bonus: 0.2 },
@@ -28,7 +30,10 @@ window.PA = window.PA || {};
   const MU = PA.Mutateurs = {
     LISTE, PAR_ID, MAX,
     prochain: null,
-    ouvert(meta) { return !!meta && (meta.bestLevel || 0) >= OUVERTURE; },
+    facile(meta) { return !!meta && (meta.difficulty || 'facile') === 'facile'; },
+    tousAges(meta) { return MU.facile(meta) && PA.Meta.playableAgeCount(meta) >= C.ages.length; },
+    restantes(meta) { return Math.max(0, PARTIES - (meta.runsTousAges || 0)); },
+    ouvert(meta) { return MU.tousAges(meta) && MU.restantes(meta) === 0; },
     choix(meta) { return (meta.mutateurs || []).filter(id => PAR_ID[id]).slice(0, MAX); },
     // Les mutateurs de la partie (aucun en boss rush, défi du jour, tutoriel).
     actifs(run) { return run && !run.mode && !(PA.Tuto && PA.Tuto.actif) && run.mutateurs || []; },
@@ -39,11 +44,17 @@ window.PA = window.PA || {};
 
     // ---------------------------------------------------------------- camp
     bouton(meta) {
-      if (!MU.ouvert(meta)) return '';
+      if (!MU.ouvert(meta)) {
+        // Tous les âges débloqués : on annonce les mutateurs et ce qui manque.
+        if (!MU.tousAges(meta)) return '';
+        const n = MU.restantes(meta);
+        return `<button class="mut-bouton" disabled title="Les mutateurs s’ouvrent après ${PARTIES} parties avec tous les âges">🔒 Mutateurs : encore ${n} partie${n > 1 ? 's' : ''}</button>`;
+      }
       const l = MU.choix(meta), b = l.reduce((s, id) => s + PAR_ID[id].bonus, 0);
       return `<button class="mut-bouton${l.length ? ' on' : ''}" data-action="tab" data-arg="mutateurs">🎲 ${l.length ? `${l.map(id => PAR_ID[id].ico).join(' ')} Mutateurs : +${pct(b)} ✦` : 'Mutateurs'}</button>`;
     },
     panneau(meta) {
+      if (!MU.ouvert(meta)) return '<p class="camp-hint">Les mutateurs s’ouvrent en mode Facile, une fois tous les âges débloqués et 5 parties jouées avec tous les âges.</p>';
       const l = MU.choix(meta), plein = l.length >= MAX, b = l.reduce((s, id) => s + PAR_ID[id].bonus, 0);
       const cartes = LISTE.map(m => {
         const on = l.includes(m.id), off = !on && plein;

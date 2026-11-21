@@ -225,6 +225,9 @@ window.PA = window.PA || {};
     lancerDefi(jour, type) {   // jour, type : seulement pour les essais (outils/pilote-modes.js)
       const game = PA.Game, meta = game.meta, d = this.defi(jour, type);
       const s = this.etatDefi(meta); s.essais++; PA.Meta.save(meta);
+      // Jamais d'âge caché au défi : les joueurs doivent les trouver eux-mêmes en partie.
+      if (PA.AgesCaches) PA.AgesCaches.appliquer(null);
+      if (PA.Magma && PA.Magma.appliquer) PA.Magma.appliquer(false);
       // Méta neutre : ni améliorations, ni élites, ni pouvoirs achetés. Tout le monde part à égalité.
       const neutre = PA.Meta.defaults(meta.difficulty);
       if (d.type === 'course') {
