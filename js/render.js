@@ -292,6 +292,8 @@ window.PA = window.PA || {};
     base(ctx, side, def, hpInfo) {
       ctx.save();
       if (side === -1) { ctx.translate(W, 0); ctx.scale(-1, 1); }
+      const EB = C.world.echelleBases || 1;   // base agrandie depuis son pied, au bord de l'écran
+      ctx.translate(0, GROUND); ctx.scale(EB, EB); ctx.translate(0, -GROUND);
       const h = def.height;
       const baseArt = this.art && this.art.bases[def.look];
       if (baseArt) {
@@ -498,7 +500,7 @@ window.PA = window.PA || {};
 
       // au-dessus de la base dessinée (plus haute que l'ancienne), pour ne pas cacher les tourelles du toit
       const hd = PA.Decors && PA.Decors.haut(def.look);
-      if (hpInfo) this.baseBar(ctx, side, GROUND - Math.max(def.height + 66, hd ? hd + 44 : 0), hpInfo);
+      if (hpInfo) this.baseBar(ctx, side, GROUND - Math.max(def.height + 50, hd ? hd + 22 : 0) * (C.world.echelleBases || 1) - 24, hpInfo);
     },
 
     // Barre de vie d'une base : assez grande pour être lue sur un téléphone.
@@ -594,7 +596,8 @@ window.PA = window.PA || {};
         ctx.translate(pos.x, pos.y);
         ctx.scale(side, 1);
         // sur une base dessinée (plus grande), les tourelles grandissent aussi, pied fixe (y = 8)
-        if (pos.dessin) { ctx.translate(0, 8); ctx.scale(1.35, 1.35); ctx.translate(0, -8); }
+        const kt = (pos.dessin ? 1.35 : 1) * (C.world.echelleBases || 1);
+        if (kt !== 1) { ctx.translate(0, 8); ctx.scale(kt, kt); ctx.translate(0, -8); }
         // Avec les nouveaux graphismes, c'est la base qui dessine les supports des tourelles.
         if (!this.art) { ctx.fillStyle = '#5b4332'; ctx.fillRect(-14, 6, 30, 5); }
         const t = list[i];
@@ -883,10 +886,12 @@ window.PA = window.PA || {};
       const s = u.h / baseH;
       if (u.cache) return;                     // champion sous terre (js/champions.js) : on ne voit que la galerie
       const alt = u.alt || 0;                  // unité en l'air : volant, saut, parachute
+      const EU = C.world.echelleUnites || 1;  // unité affichée plus grande, pieds au sol (rien ne change en jeu)
       ctx.save();
       ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      ctx.beginPath(); ctx.ellipse(u.x, GROUND + 1, u.w * 0.55 * (alt ? 0.7 : 1), alt ? 3 : 4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(u.x, GROUND + 1, u.w * 0.55 * EU * (alt ? 0.7 : 1), (alt ? 3 : 4) * EU, 0, 0, Math.PI * 2); ctx.fill();
       ctx.translate(u.x, GROUND - alt);
+      ctx.scale(EU, EU);
       if (u.renverse > 0) ctx.rotate(-u.side * 0.5 * Math.min(1, u.renverse));   // renversé par une charge
       if (u.ecrase > 0) ctx.scale(1, 1 - 0.4 * u.ecrase);                       // écrasé par le Monstre-camion
       // Élément de la run : un anneau coloré aux pieds de tes unités.
@@ -1728,7 +1733,8 @@ window.PA = window.PA || {};
     unitBar(ctx, u) {
       if (u.hp >= u.maxHp && !u.isChampion || u.cache) return;
       const bw = Math.max(24, u.w * 0.8);
-      const x = u.x - bw / 2, y = GROUND - (u.alt || 0) - u.h - 12;
+      // (× 1,12 : les personnages en images dépassent un peu la hauteur de leur dessin en code)
+      const x = u.x - bw / 2, y = GROUND - (u.alt || 0) - u.h * (C.world.echelleUnites || 1) * 1.12 - 10;
       const k = Math.max(0, u.hp / u.maxHp);
       ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x, y, bw, 4);
       ctx.fillStyle = u.side === 1 ? '#6fd06b' : '#f06a55';

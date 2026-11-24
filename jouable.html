@@ -589,6 +589,10 @@ PA.CONFIG = {
     height: 720,
     groundY: 610,
     baseWidth: 110,        // largeur d'une base ; joueur à gauche, ennemi à droite
+    // Taille d'affichage (25 novembre : « le jeu paraît très petit ») : unités et bases sont dessinées plus
+    // grandes, pieds au sol. Rien ne change pour le jeu lui-même (positions, portées, collisions).
+    echelleUnites: 1.3,
+    echelleBases: 1.35,
   },
 
   // --- Économie du joueur ---------------------------------------------------
@@ -1627,8 +1631,11 @@ window.PA = window.PA || {};
       // Base dessinée (js/decors.js) : les tourelles se posent sur ses toits et ses remparts.
       const look = side === 1 ? C.ages[this.run.age].base.look : this.mode === 'assault' ? 'citadel' : C.ages[this.enemyAge].base.look;
       const E = PA.Decors && PA.Decors.emplacements(look), e = E && E[slot];
-      if (e) return { x: side === 1 ? e[0] : W.width - e[0], y: e[1] - 8, dessin: true };
-      return { x: side === 1 ? 92 : W.width - 92, y: GROUND - 34 - slot * SLOT_DY };
+      // La base est affichée agrandie (world.echelleBases), depuis son pied au bord de l'écran : ses emplacements aussi.
+      const EB = W.echelleBases || 1;
+      const pied = e ? e[1] : GROUND - 26 - slot * SLOT_DY;          // pied de la tourelle (8 sous son origine)
+      const x = (e ? e[0] : 92) * EB, y = GROUND + (pied - GROUND) * EB - 8;
+      return { x: side === 1 ? x : W.width - x, y, dessin: !!e };
     }
 
     canSpawn(side, w) {
@@ -2123,7 +2130,7 @@ window.PA = window.PA || {};
       } else {
         const p = u.def.projectile;
         const sx = u.x + u.side * 8;
-        const sy = GROUND - (u.alt || 0) - u.h * 0.62;
+        const sy = GROUND - (u.alt || 0) - u.h * 0.62 * (W.echelleUnites || 1);   // à hauteur du dessin agrandi
         if (PA.Fx) PA.Fx.tir(this, sx, sy, u.side);
         this.fire({
           owner: u.side, x: sx, y: sy, target, look: p.look, speed: p.speed, dmg,
@@ -2703,6 +2710,8 @@ window.PA = window.PA || {};
     base(ctx, side, def, hpInfo) {
       ctx.save();
       if (side === -1) { ctx.translate(W, 0); ctx.scale(-1, 1); }
+      const EB = C.world.echelleBases || 1;   // base agrandie depuis son pied, au bord de l'écran
+      ctx.translate(0, GROUND); ctx.scale(EB, EB); ctx.translate(0, -GROUND);
       const h = def.height;
       const baseArt = this.art && this.art.bases[def.look];
       if (baseArt) {
@@ -2909,7 +2918,7 @@ window.PA = window.PA || {};
 
       // au-dessus de la base dessinée (plus haute que l'ancienne), pour ne pas cacher les tourelles du toit
       const hd = PA.Decors && PA.Decors.haut(def.look);
-      if (hpInfo) this.baseBar(ctx, side, GROUND - Math.max(def.height + 66, hd ? hd + 44 : 0), hpInfo);
+      if (hpInfo) this.baseBar(ctx, side, GROUND - Math.max(def.height + 50, hd ? hd + 22 : 0) * (C.world.echelleBases || 1) - 24, hpInfo);
     },
 
     // Barre de vie d'une base : assez grande pour être lue sur un téléphone.
@@ -3005,7 +3014,8 @@ window.PA = window.PA || {};
         ctx.translate(pos.x, pos.y);
         ctx.scale(side, 1);
         // sur une base dessinée (plus grande), les tourelles grandissent aussi, pied fixe (y = 8)
-        if (pos.dessin) { ctx.translate(0, 8); ctx.scale(1.35, 1.35); ctx.translate(0, -8); }
+        const kt = (pos.dessin ? 1.35 : 1) * (C.world.echelleBases || 1);
+        if (kt !== 1) { ctx.translate(0, 8); ctx.scale(kt, kt); ctx.translate(0, -8); }
         // Avec les nouveaux graphismes, c'est la base qui dessine les supports des tourelles.
         if (!this.art) { ctx.fillStyle = '#5b4332'; ctx.fillRect(-14, 6, 30, 5); }
         const t = list[i];
@@ -3294,10 +3304,12 @@ window.PA = window.PA || {};
       const s = u.h / baseH;
       if (u.cache) return;                     // champion sous terre (js/champions.js) : on ne voit que la galerie
       const alt = u.alt || 0;                  // unité en l'air : volant, saut, parachute
+      const EU = C.world.echelleUnites || 1;  // unité affichée plus grande, pieds au sol (rien ne change en jeu)
       ctx.save();
       ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      ctx.beginPath(); ctx.ellipse(u.x, GROUND + 1, u.w * 0.55 * (alt ? 0.7 : 1), alt ? 3 : 4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(u.x, GROUND + 1, u.w * 0.55 * EU * (alt ? 0.7 : 1), (alt ? 3 : 4) * EU, 0, 0, Math.PI * 2); ctx.fill();
       ctx.translate(u.x, GROUND - alt);
+      ctx.scale(EU, EU);
       if (u.renverse > 0) ctx.rotate(-u.side * 0.5 * Math.min(1, u.renverse));   // renversé par une charge
       if (u.ecrase > 0) ctx.scale(1, 1 - 0.4 * u.ecrase);                       // écrasé par le Monstre-camion
       // Élément de la run : un anneau coloré aux pieds de tes unités.
@@ -4139,7 +4151,8 @@ window.PA = window.PA || {};
     unitBar(ctx, u) {
       if (u.hp >= u.maxHp && !u.isChampion || u.cache) return;
       const bw = Math.max(24, u.w * 0.8);
-      const x = u.x - bw / 2, y = GROUND - (u.alt || 0) - u.h - 12;
+      // (× 1,12 : les personnages en images dépassent un peu la hauteur de leur dessin en code)
+      const x = u.x - bw / 2, y = GROUND - (u.alt || 0) - u.h * (C.world.echelleUnites || 1) * 1.12 - 10;
       const k = Math.max(0, u.hp / u.maxHp);
       ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x, y, bw, 4);
       ctx.fillStyle = u.side === 1 ? '#6fd06b' : '#f06a55';
@@ -9641,6 +9654,7 @@ window.PA = window.PA || {};
 (function () {
   const C = PA.CONFIG, K = PA.BattleConst, GROUND = K.GROUND, PF = K.PLAYER_FRONT, EF = K.ENEMY_FRONT;
   const TAU = Math.PI * 2, INK = '#0a1838';
+  const EU = C.world.echelleUnites || 1;   // unités affichées agrandies (js/render.js)
   const rand = (a, b) => a + Math.random() * (b - a), cl = (x, a, b) => Math.max(a, Math.min(b, x));
 
   // ---------------------------------------------------------------- la table des pouvoirs
@@ -9979,20 +9993,20 @@ window.PA = window.PA || {};
     }
     for (const u of b.eu) {
       if (u.dead) continue;
-      if (u.stun > 0.2) for (let i = 0; i < 3; i++) etoile(u.x + Math.cos(T * 5 + i * TAU / 3) * 13, GROUND - u.h - 12 + Math.sin(T * 5 + i * TAU / 3) * 4, 6, pw.ondeLook === 'temps' || pw.ondeLook === 'iem' ? '#9fe3ff' : '#ffd23f');
-      if (u.poison > 0) { const k = (T * 1.6 + u.x * 0.01) % 1; rond(u.x + Math.sin(u.x) * 8, GROUND - u.h - 4 - k * 18, 4 * (1 - k) + 1, '#8dd65a', 1.5); }
+      if (u.stun > 0.2) for (let i = 0; i < 3; i++) etoile(u.x + Math.cos(T * 5 + i * TAU / 3) * 13, GROUND - (u.h * EU) - 12 + Math.sin(T * 5 + i * TAU / 3) * 4, 6, pw.ondeLook === 'temps' || pw.ondeLook === 'iem' ? '#9fe3ff' : '#ffd23f');
+      if (u.poison > 0) { const k = (T * 1.6 + u.x * 0.01) % 1; rond(u.x + Math.sin(u.x) * 8, GROUND - (u.h * EU) - 4 - k * 18, 4 * (1 - k) + 1, '#8dd65a', 1.5); }
     }
     for (const u of b.pu) {
       if (u.dead) continue;
-      if (u.converti) { c.save(); c.translate(u.x, GROUND - u.h - 14); c.rotate(T * 5); c.beginPath(); c.arc(0, 0, 9, 0, 4.6); c.lineWidth = 7; c.strokeStyle = INK; c.stroke(); c.lineWidth = 3.5; c.strokeStyle = '#d58bff'; c.stroke(); c.restore(); }
+      if (u.converti) { c.save(); c.translate(u.x, GROUND - (u.h * EU) - 14); c.rotate(T * 5); c.beginPath(); c.arc(0, 0, 9, 0, 4.6); c.lineWidth = 7; c.strokeStyle = INK; c.stroke(); c.lineWidth = 3.5; c.strokeStyle = '#d58bff'; c.stroke(); c.restore(); }
       if (u.arrivee > 0 && u.para) {                        // le parachute se replie au-dessus du soldat qui vient de se poser
-        const k = u.arrivee / 0.9, y = GROUND - u.h - 18 - k * 26;
+        const k = u.arrivee / 0.9, y = GROUND - (u.h * EU) - 18 - k * 26;
         c.save(); c.globalAlpha = Math.min(1, k * 2);
-        ligne(u.x - 24 * k - 4, y, u.x, GROUND - u.h + 4, INK, 2); ligne(u.x + 24 * k + 4, y, u.x, GROUND - u.h + 4, INK, 2);
+        ligne(u.x - 24 * k - 4, y, u.x, GROUND - (u.h * EU) + 4, INK, 2); ligne(u.x + 24 * k + 4, y, u.x, GROUND - (u.h * EU) + 4, INK, 2);
         c.beginPath(); c.ellipse(u.x, y, 26 * k + 6, 20 * k + 4, 0, Math.PI, TAU); c.closePath(); c.fillStyle = '#7fb069'; c.fill(); trait(2.5); c.restore();
-      } else if (u.arrivee > 0) { c.save(); c.globalAlpha = u.arrivee / 0.5; c.beginPath(); c.arc(u.x, GROUND - u.h / 2, u.h * (1.2 - u.arrivee), 0, TAU); c.lineWidth = 4; c.strokeStyle = '#ffd23f'; c.stroke(); c.restore(); }
-      if (pw.haste > 0) { c.save(); c.globalAlpha = 0.35 * Math.min(1, pw.haste); c.beginPath(); c.arc(u.x, GROUND - u.h / 2, u.h * 0.62 + 2 * Math.sin(T * 10 + u.x), 0, TAU); c.fillStyle = '#ff8a3c'; c.fill(); c.restore(); for (let j = 0; j < 3; j++) ligne(u.x - u.w / 2 - 6 - j * 5, GROUND - 10 - j * 12, u.x - u.w / 2 - 22 - j * 5, GROUND - 10 - j * 12, '#ffd23f', 2.5); }
-      if (pw.guard > 0 && pw.guardLook === 'tortue') { c.save(); c.globalAlpha = Math.min(1, pw.guard * 2); c.translate(u.x + u.w / 2 + 4, GROUND - u.h * 0.5); rect(-9, -16, 18, 32, '#c9a13a', 7); rond(0, 0, 4, '#ffe9a0', 2); c.restore(); }
+      } else if (u.arrivee > 0) { c.save(); c.globalAlpha = u.arrivee / 0.5; c.beginPath(); c.arc(u.x, GROUND - (u.h * EU) / 2, (u.h * EU) * (1.2 - u.arrivee), 0, TAU); c.lineWidth = 4; c.strokeStyle = '#ffd23f'; c.stroke(); c.restore(); }
+      if (pw.haste > 0) { c.save(); c.globalAlpha = 0.35 * Math.min(1, pw.haste); c.beginPath(); c.arc(u.x, GROUND - (u.h * EU) / 2, (u.h * EU) * 0.62 + 2 * Math.sin(T * 10 + u.x), 0, TAU); c.fillStyle = '#ff8a3c'; c.fill(); c.restore(); for (let j = 0; j < 3; j++) ligne(u.x - u.w / 2 - 6 - j * 5, GROUND - 10 - j * 12, u.x - u.w / 2 - 22 - j * 5, GROUND - 10 - j * 12, '#ffd23f', 2.5); }
+      if (pw.guard > 0 && pw.guardLook === 'tortue') { c.save(); c.globalAlpha = Math.min(1, pw.guard * 2); c.translate(u.x + u.w / 2 + 4, GROUND - (u.h * EU) * 0.5); rect(-9, -16, 18, 32, '#c9a13a', 7); rond(0, 0, 4, '#ffe9a0', 2); c.restore(); }
     }
     if (pw.guard > 0 && pw.guardLook === 'dome') {
       const tete = b.pu.find(u => !u.dead), x1 = Math.max(PF + 120, tete ? tete.x + 50 : 0), cx = (x1 - 20) / 2 + 10, r = (x1 + 20) / 2, a = Math.min(1, pw.guard * 2);
@@ -10199,7 +10213,7 @@ window.PA = window.PA || {};
   // ---------------------------------------------------------------- outils
   const etatDe = b => b.chx || (b.chx = { zones: [], oeufs: [], bombes: [], fx: [], relever: [] });
   const texte = (b, x, y, s, col = '#fff') => b.texts.push({ x, y, text: s, life: 1.5, color: col });
-  const titre = (b, u, s, col) => texte(b, u.x, GROUND - u.h - 34 - (u.alt || 0), s, col);
+  const titre = (b, u, s, col) => texte(b, u.x, GROUND - u.h * (PA.CONFIG.world.echelleUnites || 1) - 34 - (u.alt || 0), s, col);
   const anneau = (b, x, r, col) => b.particles.push({ ring: true, x, y: GROUND - 6, r: 4, maxR: r, life: 0.45, max: 0.45, color: col });
   const poussiere = (b, x, n, col = 'rgba(190,170,130,0.85)') => { for (let i = 0; i < n; i++) b.particles.push({ x: x + rand(-20, 20), y: GROUND - rand(0, 10), vx: rand(-90, 90), vy: rand(-120, -20), life: rand(0.3, 0.7), max: 0.7, color: col, size: rand(3, 6) }); };
   const vivant = f => f && !f.dead && !f.cache && !f.chute && !f.porte;

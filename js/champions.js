@@ -113,7 +113,7 @@ window.PA = window.PA || {};
   // ---------------------------------------------------------------- outils
   const etatDe = b => b.chx || (b.chx = { zones: [], oeufs: [], bombes: [], fx: [], relever: [] });
   const texte = (b, x, y, s, col = '#fff') => b.texts.push({ x, y, text: s, life: 1.5, color: col });
-  const titre = (b, u, s, col) => texte(b, u.x, GROUND - u.h - 34 - (u.alt || 0), s, col);
+  const titre = (b, u, s, col) => texte(b, u.x, GROUND - u.h * (PA.CONFIG.world.echelleUnites || 1) - 34 - (u.alt || 0), s, col);
   const anneau = (b, x, r, col) => b.particles.push({ ring: true, x, y: GROUND - 6, r: 4, maxR: r, life: 0.45, max: 0.45, color: col });
   const poussiere = (b, x, n, col = 'rgba(190,170,130,0.85)') => { for (let i = 0; i < n; i++) b.particles.push({ x: x + rand(-20, 20), y: GROUND - rand(0, 10), vx: rand(-90, 90), vy: rand(-120, -20), life: rand(0.3, 0.7), max: 0.7, color: col, size: rand(3, 6) }); };
   const vivant = f => f && !f.dead && !f.cache && !f.chute && !f.porte;

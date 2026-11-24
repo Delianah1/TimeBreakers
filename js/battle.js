@@ -188,8 +188,11 @@ window.PA = window.PA || {};
       // Base dessinée (js/decors.js) : les tourelles se posent sur ses toits et ses remparts.
       const look = side === 1 ? C.ages[this.run.age].base.look : this.mode === 'assault' ? 'citadel' : C.ages[this.enemyAge].base.look;
       const E = PA.Decors && PA.Decors.emplacements(look), e = E && E[slot];
-      if (e) return { x: side === 1 ? e[0] : W.width - e[0], y: e[1] - 8, dessin: true };
-      return { x: side === 1 ? 92 : W.width - 92, y: GROUND - 34 - slot * SLOT_DY };
+      // La base est affichée agrandie (world.echelleBases), depuis son pied au bord de l'écran : ses emplacements aussi.
+      const EB = W.echelleBases || 1;
+      const pied = e ? e[1] : GROUND - 26 - slot * SLOT_DY;          // pied de la tourelle (8 sous son origine)
+      const x = (e ? e[0] : 92) * EB, y = GROUND + (pied - GROUND) * EB - 8;
+      return { x: side === 1 ? x : W.width - x, y, dessin: !!e };
     }
 
     canSpawn(side, w) {
@@ -684,7 +687,7 @@ window.PA = window.PA || {};
       } else {
         const p = u.def.projectile;
         const sx = u.x + u.side * 8;
-        const sy = GROUND - (u.alt || 0) - u.h * 0.62;
+        const sy = GROUND - (u.alt || 0) - u.h * 0.62 * (W.echelleUnites || 1);   // à hauteur du dessin agrandi
         if (PA.Fx) PA.Fx.tir(this, sx, sy, u.side);
         this.fire({
           owner: u.side, x: sx, y: sy, target, look: p.look, speed: p.speed, dmg,

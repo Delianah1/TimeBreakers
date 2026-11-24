@@ -23,6 +23,10 @@ PA.CONFIG = {
     height: 720,
     groundY: 610,
     baseWidth: 110,        // largeur d'une base ; joueur à gauche, ennemi à droite
+    // Taille d'affichage (25 novembre : « le jeu paraît très petit ») : unités et bases sont dessinées plus
+    // grandes, pieds au sol. Rien ne change pour le jeu lui-même (positions, portées, collisions).
+    echelleUnites: 1.3,
+    echelleBases: 1.35,
   },
 
   // --- Économie du joueur ---------------------------------------------------

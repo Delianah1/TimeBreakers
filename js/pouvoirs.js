@@ -17,6 +17,7 @@ window.PA = window.PA || {};
 (function () {
   const C = PA.CONFIG, K = PA.BattleConst, GROUND = K.GROUND, PF = K.PLAYER_FRONT, EF = K.ENEMY_FRONT;
   const TAU = Math.PI * 2, INK = '#0a1838';
+  const EU = C.world.echelleUnites || 1;   // unités affichées agrandies (js/render.js)
   const rand = (a, b) => a + Math.random() * (b - a), cl = (x, a, b) => Math.max(a, Math.min(b, x));
 
   // ---------------------------------------------------------------- la table des pouvoirs
@@ -355,20 +356,20 @@ window.PA = window.PA || {};
     }
     for (const u of b.eu) {
       if (u.dead) continue;
-      if (u.stun > 0.2) for (let i = 0; i < 3; i++) etoile(u.x + Math.cos(T * 5 + i * TAU / 3) * 13, GROUND - u.h - 12 + Math.sin(T * 5 + i * TAU / 3) * 4, 6, pw.ondeLook === 'temps' || pw.ondeLook === 'iem' ? '#9fe3ff' : '#ffd23f');
-      if (u.poison > 0) { const k = (T * 1.6 + u.x * 0.01) % 1; rond(u.x + Math.sin(u.x) * 8, GROUND - u.h - 4 - k * 18, 4 * (1 - k) + 1, '#8dd65a', 1.5); }
+      if (u.stun > 0.2) for (let i = 0; i < 3; i++) etoile(u.x + Math.cos(T * 5 + i * TAU / 3) * 13, GROUND - (u.h * EU) - 12 + Math.sin(T * 5 + i * TAU / 3) * 4, 6, pw.ondeLook === 'temps' || pw.ondeLook === 'iem' ? '#9fe3ff' : '#ffd23f');
+      if (u.poison > 0) { const k = (T * 1.6 + u.x * 0.01) % 1; rond(u.x + Math.sin(u.x) * 8, GROUND - (u.h * EU) - 4 - k * 18, 4 * (1 - k) + 1, '#8dd65a', 1.5); }
     }
     for (const u of b.pu) {
       if (u.dead) continue;
-      if (u.converti) { c.save(); c.translate(u.x, GROUND - u.h - 14); c.rotate(T * 5); c.beginPath(); c.arc(0, 0, 9, 0, 4.6); c.lineWidth = 7; c.strokeStyle = INK; c.stroke(); c.lineWidth = 3.5; c.strokeStyle = '#d58bff'; c.stroke(); c.restore(); }
+      if (u.converti) { c.save(); c.translate(u.x, GROUND - (u.h * EU) - 14); c.rotate(T * 5); c.beginPath(); c.arc(0, 0, 9, 0, 4.6); c.lineWidth = 7; c.strokeStyle = INK; c.stroke(); c.lineWidth = 3.5; c.strokeStyle = '#d58bff'; c.stroke(); c.restore(); }
       if (u.arrivee > 0 && u.para) {                        // le parachute se replie au-dessus du soldat qui vient de se poser
-        const k = u.arrivee / 0.9, y = GROUND - u.h - 18 - k * 26;
+        const k = u.arrivee / 0.9, y = GROUND - (u.h * EU) - 18 - k * 26;
         c.save(); c.globalAlpha = Math.min(1, k * 2);
-        ligne(u.x - 24 * k - 4, y, u.x, GROUND - u.h + 4, INK, 2); ligne(u.x + 24 * k + 4, y, u.x, GROUND - u.h + 4, INK, 2);
+        ligne(u.x - 24 * k - 4, y, u.x, GROUND - (u.h * EU) + 4, INK, 2); ligne(u.x + 24 * k + 4, y, u.x, GROUND - (u.h * EU) + 4, INK, 2);
         c.beginPath(); c.ellipse(u.x, y, 26 * k + 6, 20 * k + 4, 0, Math.PI, TAU); c.closePath(); c.fillStyle = '#7fb069'; c.fill(); trait(2.5); c.restore();
-      } else if (u.arrivee > 0) { c.save(); c.globalAlpha = u.arrivee / 0.5; c.beginPath(); c.arc(u.x, GROUND - u.h / 2, u.h * (1.2 - u.arrivee), 0, TAU); c.lineWidth = 4; c.strokeStyle = '#ffd23f'; c.stroke(); c.restore(); }
-      if (pw.haste > 0) { c.save(); c.globalAlpha = 0.35 * Math.min(1, pw.haste); c.beginPath(); c.arc(u.x, GROUND - u.h / 2, u.h * 0.62 + 2 * Math.sin(T * 10 + u.x), 0, TAU); c.fillStyle = '#ff8a3c'; c.fill(); c.restore(); for (let j = 0; j < 3; j++) ligne(u.x - u.w / 2 - 6 - j * 5, GROUND - 10 - j * 12, u.x - u.w / 2 - 22 - j * 5, GROUND - 10 - j * 12, '#ffd23f', 2.5); }
-      if (pw.guard > 0 && pw.guardLook === 'tortue') { c.save(); c.globalAlpha = Math.min(1, pw.guard * 2); c.translate(u.x + u.w / 2 + 4, GROUND - u.h * 0.5); rect(-9, -16, 18, 32, '#c9a13a', 7); rond(0, 0, 4, '#ffe9a0', 2); c.restore(); }
+      } else if (u.arrivee > 0) { c.save(); c.globalAlpha = u.arrivee / 0.5; c.beginPath(); c.arc(u.x, GROUND - (u.h * EU) / 2, (u.h * EU) * (1.2 - u.arrivee), 0, TAU); c.lineWidth = 4; c.strokeStyle = '#ffd23f'; c.stroke(); c.restore(); }
+      if (pw.haste > 0) { c.save(); c.globalAlpha = 0.35 * Math.min(1, pw.haste); c.beginPath(); c.arc(u.x, GROUND - (u.h * EU) / 2, (u.h * EU) * 0.62 + 2 * Math.sin(T * 10 + u.x), 0, TAU); c.fillStyle = '#ff8a3c'; c.fill(); c.restore(); for (let j = 0; j < 3; j++) ligne(u.x - u.w / 2 - 6 - j * 5, GROUND - 10 - j * 12, u.x - u.w / 2 - 22 - j * 5, GROUND - 10 - j * 12, '#ffd23f', 2.5); }
+      if (pw.guard > 0 && pw.guardLook === 'tortue') { c.save(); c.globalAlpha = Math.min(1, pw.guard * 2); c.translate(u.x + u.w / 2 + 4, GROUND - (u.h * EU) * 0.5); rect(-9, -16, 18, 32, '#c9a13a', 7); rond(0, 0, 4, '#ffe9a0', 2); c.restore(); }
     }
     if (pw.guard > 0 && pw.guardLook === 'dome') {
       const tete = b.pu.find(u => !u.dead), x1 = Math.max(PF + 120, tete ? tete.x + 50 : 0), cx = (x1 - 20) / 2 + 10, r = (x1 + 20) / 2, a = Math.min(1, pw.guard * 2);
