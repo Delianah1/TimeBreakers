@@ -252,6 +252,7 @@ window.PA = window.PA || {};
       z.t += dt;
       for (const f of this.eu) {
         if (f.dead || f.x < z.x0 - f.w / 2 || f.x > z.x1 + f.w / 2) continue;
+        if (z.look !== 'toxique' && PA.enVol(f)) continue;   // fosse, lave, huile : au sol ; le nuage toxique, lui, monte
         if (z.effet === 'burn') { if (!f.burn || f.burn.dps <= z.dps) f.burn = { dps: z.dps, t: 0.5 }; }
         else {
           this.damageUnit(f, z.dps * dt, true);
@@ -262,7 +263,7 @@ window.PA = window.PA || {};
     pw.zones = pw.zones.filter(z => z.t < z.max);
     for (const m of pw.mines) {
       m.t -= dt;
-      if (this.eu.some(f => !f.dead && Math.abs(f.x - m.x) <= f.w / 2 + 10)) { P.explose(this, m.x, m.r, m.dmg); m.t = 0; }
+      if (this.eu.some(f => !f.dead && !PA.enVol(f) && Math.abs(f.x - m.x) <= f.w / 2 + 10)) { P.explose(this, m.x, m.r, m.dmg); m.t = 0; }
     }
     pw.mines = pw.mines.filter(m => m.t > 0);
     const fo = pw.focus;

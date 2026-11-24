@@ -15,6 +15,8 @@ window.PA = window.PA || {};
   const SLOT_DY = 30;      // écart vertical entre deux emplacements de tourelle
 
   const rand = (a, b) => a + Math.random() * (b - a);
+  // En l'air (volant, enlèvement, saut) : hors d'atteinte de ce qui reste au sol (fosse, lave, mines, charges).
+  PA.enVol = f => !!f.vol || (f.alt || 0) > 20;
 
   // Effets d'impact du pouvoir spécial, selon son apparence
   const DROP_FX = {
@@ -932,11 +934,12 @@ window.PA = window.PA || {};
         s.x += s.speed * dt;
         s.walk += dt * 14;
         if (s.explode) {                           // Baril de poudre : il explose au premier contact
-          if (s.x > ENEMY_FRONT - 30 || this.eu.some(f => !f.dead && Math.abs(f.x - s.x) <= f.w / 2 + 20)) { PA.Pouvoirs.explose(this, s.x, s.explode, s.dmg); s.dead = true; }
+          if (s.x > ENEMY_FRONT - 30 || this.eu.some(f => !f.dead && !PA.enVol(f) && Math.abs(f.x - s.x) <= f.w / 2 + 20)) { PA.Pouvoirs.explose(this, s.x, s.explode, s.dmg); s.dead = true; }
           continue;
         }
         for (const f of this.eu) {
           if (f.dead || s.hit.has(f) || Math.abs(f.x - s.x) > f.w / 2 + 26) continue;
+          if (s.look !== 'laser' && PA.enVol(f)) continue;   // une charge au sol passe sous ce qui vole (le laser, lui, vient du ciel)
           s.hit.add(f);
           this.damageUnit(f, s.dmg);
           if (!f.dead && s.knock) f.x = Math.min(ENEMY_FRONT - f.w / 2 - 2, f.x + s.knock * (f.isChampion ? 0.4 : 1));

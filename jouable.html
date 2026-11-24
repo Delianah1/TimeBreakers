@@ -1458,6 +1458,8 @@ window.PA = window.PA || {};
   const SLOT_DY = 30;      // écart vertical entre deux emplacements de tourelle
 
   const rand = (a, b) => a + Math.random() * (b - a);
+  // En l'air (volant, enlèvement, saut) : hors d'atteinte de ce qui reste au sol (fosse, lave, mines, charges).
+  PA.enVol = f => !!f.vol || (f.alt || 0) > 20;
 
   // Effets d'impact du pouvoir spécial, selon son apparence
   const DROP_FX = {
@@ -2375,11 +2377,12 @@ window.PA = window.PA || {};
         s.x += s.speed * dt;
         s.walk += dt * 14;
         if (s.explode) {                           // Baril de poudre : il explose au premier contact
-          if (s.x > ENEMY_FRONT - 30 || this.eu.some(f => !f.dead && Math.abs(f.x - s.x) <= f.w / 2 + 20)) { PA.Pouvoirs.explose(this, s.x, s.explode, s.dmg); s.dead = true; }
+          if (s.x > ENEMY_FRONT - 30 || this.eu.some(f => !f.dead && !PA.enVol(f) && Math.abs(f.x - s.x) <= f.w / 2 + 20)) { PA.Pouvoirs.explose(this, s.x, s.explode, s.dmg); s.dead = true; }
           continue;
         }
         for (const f of this.eu) {
           if (f.dead || s.hit.has(f) || Math.abs(f.x - s.x) > f.w / 2 + 26) continue;
+          if (s.look !== 'laser' && PA.enVol(f)) continue;   // une charge au sol passe sous ce qui vole (le laser, lui, vient du ciel)
           s.hit.add(f);
           this.damageUnit(f, s.dmg);
           if (!f.dead && s.knock) f.x = Math.min(ENEMY_FRONT - f.w / 2 - 2, f.x + s.knock * (f.isChampion ? 0.4 : 1));
@@ -9889,6 +9892,7 @@ window.PA = window.PA || {};
       z.t += dt;
       for (const f of this.eu) {
         if (f.dead || f.x < z.x0 - f.w / 2 || f.x > z.x1 + f.w / 2) continue;
+        if (z.look !== 'toxique' && PA.enVol(f)) continue;   // fosse, lave, huile : au sol ; le nuage toxique, lui, monte
         if (z.effet === 'burn') { if (!f.burn || f.burn.dps <= z.dps) f.burn = { dps: z.dps, t: 0.5 }; }
         else {
           this.damageUnit(f, z.dps * dt, true);
@@ -9899,7 +9903,7 @@ window.PA = window.PA || {};
     pw.zones = pw.zones.filter(z => z.t < z.max);
     for (const m of pw.mines) {
       m.t -= dt;
-      if (this.eu.some(f => !f.dead && Math.abs(f.x - m.x) <= f.w / 2 + 10)) { P.explose(this, m.x, m.r, m.dmg); m.t = 0; }
+      if (this.eu.some(f => !f.dead && !PA.enVol(f) && Math.abs(f.x - m.x) <= f.w / 2 + 10)) { P.explose(this, m.x, m.r, m.dmg); m.t = 0; }
     }
     pw.mines = pw.mines.filter(m => m.t > 0);
     const fo = pw.focus;
