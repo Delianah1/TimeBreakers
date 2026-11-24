@@ -496,7 +496,9 @@ window.PA = window.PA || {};
       }
       ctx.restore();
 
-      if (hpInfo) this.baseBar(ctx, side, GROUND - def.height - 66, hpInfo);
+      // au-dessus de la base dessinée (plus haute que l'ancienne), pour ne pas cacher les tourelles du toit
+      const hd = PA.Decors && PA.Decors.haut(def.look);
+      if (hpInfo) this.baseBar(ctx, side, GROUND - Math.max(def.height + 66, hd ? hd + 44 : 0), hpInfo);
     },
 
     // Barre de vie d'une base : assez grande pour être lue sur un téléphone.
@@ -591,6 +593,8 @@ window.PA = window.PA || {};
         ctx.save();
         ctx.translate(pos.x, pos.y);
         ctx.scale(side, 1);
+        // sur une base dessinée (plus grande), les tourelles grandissent aussi, pied fixe (y = 8)
+        if (pos.dessin) { ctx.translate(0, 8); ctx.scale(1.35, 1.35); ctx.translate(0, -8); }
         // Avec les nouveaux graphismes, c'est la base qui dessine les supports des tourelles.
         if (!this.art) { ctx.fillStyle = '#5b4332'; ctx.fillRect(-14, 6, 30, 5); }
         const t = list[i];
@@ -2020,8 +2024,9 @@ window.PA = window.PA || {};
     particles(ctx, b) {
       const nouveau = PA.Fx && PA.Fx.actif();   // un autre style d'effets remplace les carrés et les anneaux d'avant
       for (const p of b.particles) {
-        if (nouveau && !p.bolt) continue;
         const a = Math.max(0, p.life / p.max);
+        if (p.impact) { PA.Sprites.dessinerImpact(ctx, p, a); continue; }   // image d'impact : quel que soit le style d'effets
+        if (nouveau && !p.bolt) continue;
         if (p.ring) {
           ctx.strokeStyle = p.color; ctx.globalAlpha = a; ctx.lineWidth = 3;
           ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r, p.r * 0.35, 0, 0, Math.PI * 2); ctx.stroke();

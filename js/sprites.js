@@ -326,8 +326,25 @@ window.PA = window.PA || {};
       return true;
     };
   }
+  // Impacts des tirs en zone, même atlas : [x, y, w, h, milieu du bas x, y]. L'image grossit vite puis s'efface.
+  const IMPACTS = {
+    lava: [2770, 0, 144, 121, 70.4, 117.8], obsidienne: [2916, 0, 120, 90, 60, 86.5],
+    boulder: [3038, 0, 140, 84, 69.2, 81], 'pot-braises': [3180, 0, 116, 92, 58, 88],
+  };
+  let imgImpacts = null;
+  function dessinerImpact(ctx, p, a) {
+    const I = IMPACTS[p.impact];
+    if (!I || !imgImpacts || PA.Sprites.coupe) return;
+    const [x, y, w, h, bx, by] = I;
+    const t = 1 - a, k = (0.55 + 0.6 * Math.min(1, t * 3)) * Math.max(0.7, (p.taille || 50) / 50) / 2;
+    ctx.globalAlpha = Math.min(1, a * 2.2);
+    ctx.drawImage(imgImpacts, x, y, w, h, p.x - bx * k, p.y - by * k, w * k, h * k);
+    ctx.globalAlpha = 1;
+  }
   function brancherProjectiles(img) {
     brancherUltimes(img);
+    imgImpacts = img;
+    for (const look in IMPACTS) PA.Sprites.impact[look] = true;
     for (const look in PROJ) {
       const [x, y, w, h, hx, hy, angle] = PROJ[look], code = PA.Art.projectiles[look];
       PA.Art.projectiles[look] = function (ctx, p, dir) {
@@ -342,10 +359,13 @@ window.PA = window.PA || {};
   }
 
   PA.Sprites = {
-    ATLAS, ANIM, ranger, rougir,
+    ATLAS, ANIM, ranger, rougir, dessinerImpact,
+    impact: {},     // looks de projectiles qui ont une image d'impact (remplie au chargement)
     coupe: false,   // vrai : on revient aux dessins en code (comparaison)
     charges: {},
     charger() {
+      // chaque image est suivie par l'écran de chargement (js/prechargement.js)
+      const Image = function () { const im = new window.Image(); if (PA.Precharge) PA.Precharge.suivre(im); return im; };
       for (const age in ATLAS) {
         const img = new Image();
         img.onload = () => { try { brancher(ATLAS[age], img, rougir(img)); this.charges[age] = true; } catch (e) { /* dessins en code */ } };

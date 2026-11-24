@@ -25,6 +25,7 @@ window.PA = window.PA || {};
     if (!e) {
       e = images[nom] = { img: new Image(), pret: false };
       e.img.onload = () => { e.pret = true; };
+      if (PA.Precharge) PA.Precharge.suivre(e.img);
       e.img.src = 'images/decors/' + nom + '.webp';
     }
     return e.pret ? e.img : null;
@@ -249,28 +250,36 @@ window.PA = window.PA || {};
     }
     ctx.fill();
   }
-  // Les images de l'avalanche ne sont chargées qu'à l'approche (Antiquité face au Médiéval).
-  const maj0 = PA.AgesCaches && PA.AgesCaches.decor;
-  if (maj0) PA.AgesCaches.decor = function (ctx, b, t) {
-    if (b.phen && b.phen.c.cle === 'glace') STADES.forEach(n => image('medieval-' + n));
-    return maj0.call(this, ctx, b, t);
-  };
+  // Tout est chargé au lancement (écran de chargement, js/prechargement.js) : rien n'arrive en cours de partie.
+  STADES.forEach(n => image('medieval-' + n));
+  image('medieval-ble');
 
   // ------------------------------------------------------------ château (base médiévale)
   // Atlas images/sprites/medieval-chateau.webp (outils/decoupe-sprites.js) : [x, y, w, h] des 3 états.
   // Les autres bases (24 novembre) suivent le même principe : look du dessin en code → son atlas.
   // haut : hauteur à l'écran de l'état intact (≈ 1,26 × la hauteur de la base en code, comme le château).
+  // emplacements : où se posent les 4 tourelles (x, y du pied) sur l'image intacte, côté joueur,
+  // dans l'ordre d'achat : le rempart au-dessus de la porte d'abord, puis les toits.
   const BASES = {
-    castle: { fichier: 'medieval-chateau', poses: [[0, 0, 300, 475], [302, 0, 303, 504], [607, 0, 310, 456]], haut: 215, gauche: -8 },
-    volcano: { fichier: 'jurassique-base', poses: [[0, 0, 319, 484], [321, 0, 310, 504], [633, 0, 310, 386]], haut: 225, gauche: -10 },
-    magma: { fichier: 'magma-base', poses: [[0, 0, 313, 492], [315, 0, 309, 504], [626, 0, 310, 385]], haut: 235, gauche: -8 },
-    cave: { fichier: 'pierre-base', poses: [[0, 0, 328, 474], [330, 0, 313, 504], [645, 0, 293, 386]], haut: 190, gauche: -10 },
+    castle: { fichier: 'medieval-chateau', poses: [[0, 0, 300, 475], [302, 0, 303, 504], [607, 0, 310, 456]], haut: 215, gauche: -8,
+      emplacements: [[100, 508], [25, 532], [75, 405], [45, 468]] },
+    volcano: { fichier: 'jurassique-base', poses: [[0, 0, 319, 484], [321, 0, 310, 504], [633, 0, 310, 386]], haut: 225, gauche: -10,
+      emplacements: [[107, 522], [95, 414], [45, 466], [58, 414]] },
+    magma: { fichier: 'magma-base', poses: [[0, 0, 313, 492], [315, 0, 309, 504], [626, 0, 310, 385]], haut: 235, gauche: -8,
+      emplacements: [[100, 510], [42, 530], [88, 416], [52, 460]] },
+    cave: { fichier: 'pierre-base', poses: [[0, 0, 328, 474], [330, 0, 313, 504], [645, 0, 293, 386]], haut: 190, gauche: -10,
+      emplacements: [[95, 442], [28, 548], [35, 500], [60, 442]] },
+  };
+  PA.Decors = {
+    emplacements: look => { const B = BASES[look]; return B && B.bleu ? B.emplacements : null; },
+    haut: look => { const B = BASES[look]; return B && B.bleu ? B.haut : 0; },
   };
   for (const look in BASES) {
     const B = BASES[look], base0 = A.bases[look];
     if (!base0) continue;
     const im = new Image();
     im.onload = () => { B.bleu = im; try { B.rouge = PA.Sprites ? PA.Sprites.rougir(im) : im; } catch (e) { B.rouge = im; } };
+    if (PA.Precharge) PA.Precharge.suivre(im);
     im.src = 'images/sprites/' + B.fichier + '.webp';
     A.bases[look] = function (ctx, side, def, team, dark, R) {
       if (!B.bleu) return base0.call(this, ctx, side, def, team, dark, R);

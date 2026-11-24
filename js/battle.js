@@ -185,6 +185,10 @@ window.PA = window.PA || {};
     }
 
     turretPos(side, slot) {
+      // Base dessinée (js/decors.js) : les tourelles se posent sur ses toits et ses remparts.
+      const look = side === 1 ? C.ages[this.run.age].base.look : this.mode === 'assault' ? 'citadel' : C.ages[this.enemyAge].base.look;
+      const E = PA.Decors && PA.Decors.emplacements(look), e = E && E[slot];
+      if (e) return { x: side === 1 ? e[0] : W.width - e[0], y: e[1] - 8, dessin: true };
       return { x: side === 1 ? 92 : W.width - 92, y: GROUND - 34 - slot * SLOT_DY };
     }
 
@@ -814,6 +818,9 @@ window.PA = window.PA || {};
         const color = SPLASH_COLOR[p.look] || '#b9a58a';
         this.particles.push({ ring: true, x, y: GROUND - 6, r: 4, maxR: p.splash, life: 0.35, max: 0.35, color });
         this.spark(x, GROUND - 8, color, 8);
+        // Impact dessiné (sprites.js) pour les projectiles qui en ont un
+        if (PA.Sprites && PA.Sprites.impact && PA.Sprites.impact[p.look])
+          this.particles.push({ impact: p.look, x, y: GROUND + 2, taille: p.splash, life: 0.45, max: 0.45 });
       } else if (p.target) {
         if (!p.target.dead) {
           this.damageUnit(p.target, p.dmg, false, 'tir');
@@ -946,7 +953,7 @@ window.PA = window.PA || {};
       for (const p of this.particles) {
         p.life -= dt;
         if (p.ring) { p.r += (p.maxR / p.max) * dt; continue; }
-        if (p.bolt) continue;
+        if (p.bolt || p.impact) continue;
         p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 420 * dt;
       }
       this.particles = this.particles.filter(p => p.life > 0);
