@@ -119,7 +119,7 @@ window.PA = window.PA || {};
       this.diffStat = D.enemyStat + (D.enemyStatPerAge || 0) * this.enemyAge;
       if (this.mode === 'level') {
         const a = this.enemyAge, b = this.blockIndex;
-        this.statMult = L.statMult[b] * this.diffStat;
+        this.statMult = ((a === 0 && L.statMultPremierAge) || L.statMult)[b] * this.diffStat;
         const hp = L.enemyBaseHp[a][b];
         this.enemyBase = { hp, maxHp: hp, invulnerable: false };
         this.enemyTurrets = (L.enemyTurrets[a][b] || []).map(idx => ({ age: a, idx, cd: 1 }));

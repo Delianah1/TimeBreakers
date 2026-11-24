@@ -458,6 +458,10 @@ PA.CONFIG = {
     enemyStartGold: [60, 200, 600, 1800, 5400, 16200, 48600, 145800, 437400, 1312200, 3936600],
     // PV ET dégâts des ennemis : la puissance réelle monte à peu près au carré (1,16² ≈ 1,35)
     statMult: [1, 1.04, 1.08, 1.12, 1.16],
+    // Au premier âge, les deux camps ont les mêmes unités (pas encore d'évolution) : +8 % suffisait à gagner
+    // chaque duel, et le N3 tuait la plupart des premières runs (simulateur, 24/11). Courbe plus douce ;
+    // le boss du N10 reste le mur de la première run, et le boss du N5 reste dur sans évoluer.
+    statMultPremierAge: [1, 1, 1.02, 1.04, 1.06],
     // index des tourelles ennemies, par âge puis par niveau
     enemyTurrets: [
       [[], [], [0], [0], [0]],
