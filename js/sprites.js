@@ -220,6 +220,25 @@ window.PA = window.PA || {};
     return U.poses.map((p, i) => an.attaque.includes(i) ? p[4] + ecart : cx[i]);
   }
 
+  // Poses fixes rendues vivantes (24 novembre) :
+  //  - fondu court d'une pose à la suivante (plus de saut d'une image à l'autre) ;
+  //  - dans le pas : le corps s'écrase un peu quand le pied touche le sol et s'étire entre deux appuis ;
+  //  - le coup : le corps se ramasse en arrière, puis se jette en avant au moment des dégâts ;
+  //  - touché : un petit recul écrasé, en plus de l'éclair blanc ;
+  //  - poussière sous les pas (comme les clips du médiéval), sauf pour ce qui vole.
+  // Planches « 8 poses » (assets/prompts-gemini.md) : marche sur 8 poses, attaque sur 4
+  // (préparation, élan, coup, retour). Préparation et élan remplissent la fin de la recharge,
+  // le coup tombe à l'instant des dégâts, le retour le suit.
+  const FONDU = 90;   // ms
+  function poseAttaque(an, u, now) {
+    const A = an.attaque;
+    if (A.length < 4) return u.attackAnim > 0 ? A[(1 - u.attackAnim / 0.25) < 0.45 ? 0 : 1] : -1;
+    if (u.attackAnim > 0) return A[(1 - u.attackAnim / 0.25) < 0.55 ? 2 : 3];
+    // entre deux coups : la recharge qui s'achève arme le suivant
+    if (!u._spAt || now - u._spAt > (u._spCd || 1) * 1000 + 300 || u.moving) return -1;
+    const reste = u.cd || 0;
+    return reste < 0.14 ? A[1] : reste < 0.38 ? A[0] : A[3];
+  }
   function brancher(A, bleu, rouge) {
     for (const id in A.unites) {
       const art = PA.Art && PA.Art.units[id];
@@ -227,36 +246,61 @@ window.PA = window.PA || {};
       const U = A.unites[id], code = art.drawCode || art.draw;
       const k = art.h * (U.echelle || ECHELLE) / U.poses[U.anim.repos][3];
       const AX = accroches(U, bleu);
+      const vole = /quetzal|phenix/.test(id);   // en vol : pas de poussière
       art.drawCode = code;
+      const pose = (ctx, img, i, alpha) => {
+        const [x, y, w, h] = U.poses[i], ax = AX[i];
+        if (alpha < 1) ctx.globalAlpha = alpha;
+        ctx.drawImage(img, x, y, w, h, -ax * k, -h * k, w * k, h * k);
+        ctx.globalAlpha = 1;
+      };
       art.draw = function (ctx, u, team, dark, atk, R) {
         if (PA.Sprites.coupe) return code.call(this, ctx, u, team, dark, atk, R);
-        const an = U.anim, now = performance.now();
+        const an = U.anim, now = performance.now(), H = art.h;
         // En marche si l'unité a avancé il y a peu : une file qui piétine ne clignote plus
         // entre la pose de repos et la marche à chaque image.
         if (u.walk !== u._spW) { u._spW = u.walk; u._spT = now; }
         const marche = u.moving || now - (u._spT || -1e9) < 220;
+        // un nouveau coup : on note quand, et la recharge qui suit
+        if ((u.attackAnim || 0) > (u._spA || 0) + 0.01) { u._spAt = now; u._spCd = Math.max(0.3, u.cd || 0.3); }
+        u._spA = u.attackAnim || 0;
         const ph = (((u.walk || 0) / (Math.PI * 2)) % 1 + 1) % 1;   // 0 → 1 sur un cycle de marche
-        let i = an.repos, dy = 0, rot = 0, sy = 1;
-        if (u.attackAnim > 0) i = an.attaque[(1 - u.attackAnim / 0.25) < 0.45 ? 0 : 1];
-        else if (marche && U.roule) {   // engin sur roues : il cahote, sans pas
+        let i = an.repos, dx = 0, dy = 0, rot = 0, sx = 1, sy = 1;
+        const ia = poseAttaque(an, u, now);
+        if (ia >= 0) {
+          i = ia;
+          if (u.attackAnim > 0) {
+            const p = 1 - u.attackAnim / 0.25;            // 0 : l'instant du coup → 1
+            dx = H * 0.07 * Math.max(0, 1 - p * 1.6);    // jeté en avant, puis revient
+            sx = 1 + 0.05 * Math.max(0, 1 - p * 2.5); sy = 2 - sx;
+          } else if (an.attaque.length >= 4 && i === an.attaque[0]) {
+            dx = -H * 0.03; sx = 0.97; sy = 1.03;        // il se ramasse avant de frapper
+          }
+        } else if (marche && U.roule) {   // engin sur roues : il cahote, sans pas
           i = an.marche[Math.floor(ph * an.marche.length)];
-          dy = -Math.abs(Math.sin(ph * Math.PI * 4)) * art.h * 0.012;
+          dy = -Math.abs(Math.sin(ph * Math.PI * 4)) * H * 0.012;
         } else if (marche) {
           i = an.marche[Math.floor(ph * an.marche.length)];
-          // entre deux poses, le corps monte et redescend à chaque pas, et tangue un peu
-          dy = -Math.abs(Math.sin(ph * Math.PI * 2)) * art.h * 0.035;
-          rot = Math.sin(ph * Math.PI * 2) * 0.03;
+          // deux appuis par cycle : écrasé au contact, étiré et monté entre deux appuis, et un peu de tangage
+          const c = Math.cos(ph * Math.PI * 4);
+          dy = -Math.max(0, -c) * H * 0.035;
+          sy = 1 - 0.045 * Math.max(0, c) + 0.025 * Math.max(0, -c); sx = 1 + 0.035 * Math.max(0, c) - 0.015 * Math.max(0, -c);
+          rot = Math.sin(ph * Math.PI * 2) * 0.025;
         } else sy = 1 + Math.sin(now / 520 + (u.id || 0)) * 0.012;   // respiration au repos
-        const [x, y, w, h] = U.poses[i], img = u.side === -1 ? rouge : bleu, ax = AX[i];
-        if (dy || rot || sy !== 1) { ctx.save(); ctx.translate(0, dy); ctx.rotate(rot); ctx.scale(1, sy); }
-        ctx.drawImage(img, x, y, w, h, -ax * k, -h * k, w * k, h * k);
+        if (u.flash > 0) { const f = u.flash / 0.1; dx -= H * 0.035 * f; sy *= 1 - 0.05 * f; sx *= 1 + 0.03 * f; }
+        // fondu : la pose précédente s'efface pendant FONDU ms
+        if (i !== u._spI) { u._spP = u._spI; u._spI = i; u._spIt = now; }
+        const f = u._spP != null ? Math.min(1, (now - u._spIt) / FONDU) : 1;
+        const img = u.side === -1 ? rouge : bleu;
+        if (marche && !vole && !U.roule && !(u.alt > 0)) poussiere(ctx, u, U.poses[i][2] * k);
+        ctx.save(); ctx.translate(dx, dy); ctx.rotate(rot); ctx.scale(sx, sy);
+        pose(ctx, img, i, 1);
+        if (f < 1) pose(ctx, img, u._spP, (1 - f) * 0.85);
         if (u.flash > 0) {   // touché : un éclair blanc par-dessus
-          ctx.globalAlpha = 0.5; ctx.globalCompositeOperation = 'lighter';
-          ctx.drawImage(img, x, y, w, h, -ax * k, -h * k, w * k, h * k);
-          ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+          ctx.globalCompositeOperation = 'lighter'; pose(ctx, img, i, 0.5); ctx.globalCompositeOperation = 'source-over';
         }
-        if (dy || rot || sy !== 1) ctx.restore();
-        if (U.feu && i === U.feu.pose) U.feu.dessiner(ctx, u, k, ax, now, bleu);
+        if (U.feu && i === U.feu.pose) U.feu.dessiner(ctx, u, k, AX[i], now, bleu);   // le souffle suit le corps
+        ctx.restore();
       };
     }
   }
@@ -330,7 +374,75 @@ window.PA = window.PA || {};
   const IMPACTS = {
     lava: [2770, 0, 144, 121, 70.4, 117.8], obsidienne: [2916, 0, 120, 90, 60, 86.5],
     boulder: [3038, 0, 140, 84, 69.2, 81], 'pot-braises': [3180, 0, 116, 92, 58, 88],
+    // ce qui tombe du ciel (pouvoirs ultimes)
+    meteor: [3298, 0, 192, 125, 96, 117.9], lavabomb: [3492, 0, 180, 149, 88.5, 145.2], rock: [3674, 0, 180, 120, 90, 115.3],
   };
+  // Le reste des pouvoirs ultimes (25 novembre), même atlas : [x, y, w, h, accroche x, y]
+  const ULT = {
+    cri: [3856, 0, 240, 194, 4.6, 189.2],          // tête de T-rex du Rugissement (accroche : en bas à gauche)
+    flaque: [4098, 0, 220, 78, 110, 70],           // flaques de l'Éruption
+    coulee: [4320, 0, 640, 75, 320, 64],           // rivière de lave de la Coulée
+    carapace: [4962, 0, 300, 201, 149.6, 193.7],   // dôme de la Carapace d'obsidienne
+    fosse: [5264, 0, 480, 150, 239.6, 81],         // Fosse à pieux (accroche : le niveau du sol)
+  };
+  // Dessine une image de ULT : son accroche en (x, y), largeur l à l'écran, hauteur h (proportionnelle si absente).
+  function ult(ctx, nom, x, y, l, h) {
+    const [sx, sy, w, hh, ax, ay] = ULT[nom], kx = l / w, ky = h != null ? h / hh : kx;
+    ctx.drawImage(imgImpacts, sx, sy, w, hh, x - ax * kx, y - ay * ky, w * kx, hh * ky);
+  }
+  function brancherPouvoirs() {
+    const P = PA.Pouvoirs, sol0 = P && P.sol, des0 = P && P.dessiner;
+    if (!sol0 || !des0) return;
+    const G = PA.CONFIG.world.groundY, K = PA.BattleConst || {};
+    const PF = K.PLAYER_FRONT || PA.CONFIG.world.baseWidth || 120;
+    const dessinee = z => z.look === 'fosse' || z.look === 'flaque' || z.image === 'coulee';
+    // Au sol : fosse, flaques, rivière de lave (les autres zones gardent leur dessin en code)
+    P.sol = function (ctx, b) {
+      const pw = b.pw;
+      if (!pw || PA.Sprites.coupe || !imgImpacts) return sol0.call(this, ctx, b);
+      const toutes = pw.zones;
+      for (const z of toutes) {
+        if (!dessinee(z)) continue;
+        const a = Math.max(0, Math.min(1, z.t / 0.3, (z.max - z.t) / 0.4)), cx = (z.x0 + z.x1) / 2, L = z.x1 - z.x0;
+        ctx.save(); ctx.globalAlpha = a;
+        if (z.look === 'fosse') {
+          const o = Math.min(1, z.t / 0.25);   // le piège s'ouvre
+          ult(ctx, 'fosse', cx, G + 2, L * 1.15, 150 / 2 * (L * 1.15) / 240 * o);
+        } else if (z.look === 'flaque') ult(ctx, 'flaque', cx, G + 6, L * 1.3);
+        else {
+          const k = Math.sin(performance.now() / 300) * 0.02;   // la lave ondule
+          ult(ctx, 'coulee', cx, G + 9, L * 1.04, 40 * (1 + k));
+        }
+        ctx.restore();
+      }
+      pw.zones = toutes.filter(z => !dessinee(z));
+      try { sol0.call(this, ctx, b); } finally { pw.zones = toutes; }
+    };
+    // Par-dessus : dôme d'obsidienne, tête du T-rex ; plus de flammes en code sur la lave dessinée
+    P.dessiner = function (ctx, b) {
+      const pw = b.pw;
+      if (!pw || PA.Sprites.coupe || !imgImpacts) return des0.call(this, ctx, b);
+      const toutes = pw.zones, look = pw.guardLook, dome = pw.guard > 0 && pw.guardImage === 'carapace';
+      pw.zones = toutes.filter(z => !dessinee(z));
+      if (dome) pw.guardLook = '';
+      try { des0.call(this, ctx, b); } finally { pw.zones = toutes; pw.guardLook = look; }
+      if (dome) {
+        // le dôme couvre tes unités, de ta base à la tête de ta ligne ; il pousse, puis s'efface
+        const tete = b.pu.filter(u => !u.dead).reduce((m, u) => Math.max(m, u.x), 0);
+        const x1 = Math.max(PF + 120, tete + 60), L = x1 + 20, monte = Math.min(1, ((pw.guardMax || 5) - pw.guard) / 0.35);
+        ctx.save(); ctx.globalAlpha = 0.5 * Math.min(1, pw.guard * 2);
+        ult(ctx, 'carapace', (x1 - 20) / 2, G + 6, L, Math.min(260, L * 0.55) * monte);
+        ctx.restore();
+      }
+      if (pw.onde > 0 && pw.ondeLook === 'cri') {
+        // la tête surgit derrière ta base au moment du cri, puis se retire
+        const k = 1 - pw.onde / 0.9, s = Math.min(1, k * 5) * (1 - Math.max(0, k - 0.75) * 2);
+        ctx.save(); ctx.globalAlpha = Math.min(1, pw.onde * 3);
+        ult(ctx, 'cri', PF - 120, G - 55, 165 * (0.6 + 0.4 * s));
+        ctx.restore();
+      }
+    };
+  }
   let imgImpacts = null;
   function dessinerImpact(ctx, p, a) {
     const I = IMPACTS[p.impact];
@@ -345,6 +457,7 @@ window.PA = window.PA || {};
     brancherUltimes(img);
     imgImpacts = img;
     for (const look in IMPACTS) PA.Sprites.impact[look] = true;
+    brancherPouvoirs();
     for (const look in PROJ) {
       const [x, y, w, h, hx, hy, angle] = PROJ[look], code = PA.Art.projectiles[look];
       PA.Art.projectiles[look] = function (ctx, p, dir) {

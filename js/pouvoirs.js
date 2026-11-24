@@ -35,8 +35,8 @@ window.PA = window.PA || {};
     // Âge caché (js/magma.js) : il prend la place de la Pierre dans les runs où on plonge dans le volcan.
     magma: [
       { id: 'souffle-volcan', name: 'Souffle du volcan', type: 'push', dist: 90, k: 1, chill: 0.5, t: 4, desc: 'Une bouffée de cendres brûlantes repousse les ennemis et les ralentit de moitié pendant 4 secondes.' },
-      { id: 'coulee', name: 'Coulée', type: 'zone', ou: 'ligne', t: 5, effet: 'burn', k: 0.9, look: 'flammes', desc: 'Une rivière de lave traverse le terrain : les ennemis brûlent pendant 5 secondes.' },
-      { id: 'carapace', name: 'Carapace d’obsidienne', type: 'guard', t: 5, k: 0.7, look: 'tortue', desc: 'Tes unités et ta base encaissent 70 % de dégâts en moins pendant 5 secondes.' },
+      { id: 'coulee', name: 'Coulée', type: 'zone', ou: 'ligne', t: 5, effet: 'burn', k: 0.9, look: 'flammes', image: 'coulee', desc: 'Une rivière de lave traverse le terrain : les ennemis brûlent pendant 5 secondes.' },
+      { id: 'carapace', name: 'Carapace d’obsidienne', type: 'guard', t: 5, k: 0.7, look: 'tortue', image: 'carapace', desc: 'Tes unités et ta base encaissent 70 % de dégâts en moins pendant 5 secondes.' },
     ],
     antiquite: [
       { id: 'tortue', name: 'Formation tortue', type: 'guard', t: 5, k: 0.85, look: 'tortue', desc: 'Tes unités et ta base encaissent 85 % de dégâts en moins pendant 5 secondes.' },
@@ -181,7 +181,7 @@ window.PA = window.PA || {};
         let x0 = PF + 30, x1 = EF - 10;
         if (sp.ou === 'base') { x0 = PF; x1 = PF + sp.large; }
         if (sp.ou === 'front') { const f = front(this); x0 = f - 40; x1 = x0 + sp.large; }
-        pw.zones.push({ x0, x1, t: 0, max: sp.t, effet: sp.effet, dps: dmg, look: sp.look });
+        pw.zones.push({ x0, x1, t: 0, max: sp.t, effet: sp.effet, dps: dmg, look: sp.look, image: sp.image });   // image : dessin de js/sprites.js
         break;
       }
       case 'stun':
@@ -191,7 +191,7 @@ window.PA = window.PA || {};
         this.shake = Math.max(this.shake, 0.2);
         break;
       case 'blind': pw.blind = sp.t; break;
-      case 'guard': pw.guard = sp.t; pw.guardK = sp.k; pw.guardLook = sp.look; break;
+      case 'guard': pw.guard = sp.t; pw.guardMax = sp.t; pw.guardK = sp.k; pw.guardLook = sp.look; pw.guardImage = sp.image; break;
       case 'haste': pw.haste = sp.t; break;
       case 'turretHaste': pw.turretHaste = sp.t; break;
       case 'push':

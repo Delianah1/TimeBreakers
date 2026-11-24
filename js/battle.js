@@ -908,7 +908,9 @@ window.PA = window.PA || {};
           this.spark(d.x, GROUND - 6, fx.color, fx.sparks);
           if (fx.ring) this.particles.push({ ring: true, x: d.x, y: GROUND - 6, r: 4, maxR: d.radius, life: 0.35, max: 0.35, color: fx.color });
           if (fx.shake) this.shake = Math.max(this.shake, fx.shake);
-          if (d.apres) d.apres(d);                 // Éruption : la bombe de lave laisse une flaque
+          if (PA.Sprites && PA.Sprites.impact && PA.Sprites.impact[d.look])   // cratère dessiné (sprites.js)
+            this.particles.push({ impact: d.look, x: d.x, y: GROUND + 2, taille: d.radius, life: 0.55, max: 0.55 });
+          if (d.apres) d.apres(d);                // Éruption : la bombe de lave laisse une flaque
         }
       }
       this.drops = this.drops.filter(d => !d.dead);
