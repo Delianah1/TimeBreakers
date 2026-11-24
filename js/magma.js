@@ -190,7 +190,7 @@ window.PA = window.PA || {};
       const s = b.volcan, T = performance.now() / 1000, A = PA.Art, Kit = A && A.kit;
       const L = b.lave;
       if (s && Kit) {
-        const CX = 930, CY = 252;
+        const [CX, CY, CB = 450] = M.CRATERE || [930, 252];   // js/decors.js le déplace sur le volcan du fond dessiné
         // collines du décor (js/art/jurassique.js)
         const h1 = x => 500 - Math.sin(x * 0.0046 + 2.2) * 26 - Math.sin(x * 0.012 + 0.4) * 9;
         const h2 = x => 560 - Math.sin(x * 0.0062 + 0.9) * 18 - Math.sin(x * 0.019 + 3) * 6;
@@ -199,7 +199,7 @@ window.PA = window.PA || {};
         ctx.fillStyle = `rgba(190,50,20,${0.05 + 0.05 * s})`; ctx.fillRect(0, 0, W, GROUND);
         Kit.puffs(ctx, CX, CY - 4, { n: 7 + s * 3, speed: 0.1, rise: 190 + s * 40, drift: 140, r0: 18, r1: 56 + s * 14, rgb: '60,46,50', a: 0.55 + s * 0.08 });
         Kit.halo(ctx, CX, CY, 80 + s * 34, '255,110,40', 0.45 + s * 0.12 + 0.1 * Math.sin(T * 5));
-        if (Kit.couleesVolcan) Kit.couleesVolcan(ctx, CX, CY, 450, [0, 0.4, 0.75, 1][s], T);
+        if (Kit.couleesVolcan) Kit.couleesVolcan(ctx, CX, CY, CB, [0, 0.4, 0.75, 1][s], T);
         // la fontaine de lave au cratère
         for (let i = 0; i < 10 + s * 6; i++) {
           const p = 0.9 + (i % 4) * 0.25, u = ((T + i * 0.37) % p) / p, vx = (hash(i) - 0.5) * 120, hh = 60 + hash(i + 50) * (50 + s * 30);
@@ -268,7 +268,7 @@ window.PA = window.PA || {};
       }
       if (L && L.bombes && Kit) {
         // les vraies bombes, du cratère jusqu'à la piste
-        const CX = 930, CY = 252;
+        const [CX, CY, CB = 450] = M.CRATERE || [930, 252];   // js/decors.js le déplace sur le volcan du fond dessiné
         for (const bo of L.bombes) {
           if (bo.posee || bo.t < 0) continue;
           const q = bo.t / bo.vol;

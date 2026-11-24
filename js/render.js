@@ -1754,6 +1754,7 @@ window.PA = window.PA || {};
         case 'boulder':
           ctx.fillStyle = '#7d6a55'; ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.fill();
           ctx.strokeStyle = '#5c4b3a'; ctx.lineWidth = 1.5; ctx.stroke(); break;
+        case 'pot-braises':   // pot du chaman, tant que son image (js/sprites.js) n'est pas chargée
         case 'fireball':
           ctx.fillStyle = 'rgba(255,170,60,0.45)'; ctx.beginPath(); ctx.arc(p.x, p.y, 11, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = '#ff7a22'; ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI * 2); ctx.fill(); break;

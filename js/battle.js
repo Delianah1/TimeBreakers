@@ -32,7 +32,7 @@ window.PA = window.PA || {};
   // Couleur des explosions à zone, selon le projectile
   const SPLASH_COLOR = { fireball: '#ff9a3c', oil: '#3b2a1a', mortar: '#ffb057', rocket: '#ff8a3c', plasma: '#7ef0c8',
     lava: '#ff6a2a', barrel: '#ff9a3c', lightning: '#bfe8ff', spore: '#9cff5a', flame: '#ff7a22', psi: '#d49bff',
-    jar: '#c9773a', steambomb: '#ffc27a', boiler: '#e8e2da', poix: '#ff9a3c', 'pierre-mangonneau': '#b9a58a' };
+    jar: '#c9773a', steambomb: '#ffc27a', boiler: '#e8e2da', poix: '#ff9a3c', 'pierre-mangonneau': '#b9a58a', 'pot-braises': '#ff9a3c' };
 
   function pickWeighted(weights) {
     const total = weights.reduce((s, w) => s + w, 0);

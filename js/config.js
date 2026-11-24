@@ -113,7 +113,7 @@ PA.CONFIG = {
         { id: 'mammouth', name: 'Mammouth de guerre', kind: 'melee', cost: 300, hp: 484, dmg: 72, interval: 1.4, reach: 12, speed: 38, train: 3.0, w: 50, h: 58,
           look: { body: 'mammoth', weapon: 'spear' }, desc: 'Lourd, encaisse beaucoup' },
         { id: 'chaman', name: 'Chaman', kind: 'ranged', elite: true, cost: 135, hp: 194, dmg: 50, interval: 1.8, range: 200, speed: 40, train: 2.5, w: 24, h: 48,
-          look: { body: 'human', weapon: 'staff', hat: 'horns' }, projectile: { look: 'fireball', speed: 380, arc: true, splash: 40 }, desc: 'Pots de braises en zone' },
+          look: { body: 'human', weapon: 'staff', hat: 'horns' }, projectile: { look: 'pot-braises', speed: 380, arc: true, splash: 40 }, desc: 'Pots de braises en zone' },
         // Chaman réduit au simulateur : à 64 dégâts, portée 220 et zone 50, il faisait passer le robot
         // de 6 à 20 assauts sur 24 avec 2 âges (le boss du N10 ne tenait plus). Maintenant : 14 sur 24.
       ],

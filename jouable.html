@@ -679,7 +679,7 @@ PA.CONFIG = {
         { id: 'mammouth', name: 'Mammouth de guerre', kind: 'melee', cost: 300, hp: 484, dmg: 72, interval: 1.4, reach: 12, speed: 38, train: 3.0, w: 50, h: 58,
           look: { body: 'mammoth', weapon: 'spear' }, desc: 'Lourd, encaisse beaucoup' },
         { id: 'chaman', name: 'Chaman', kind: 'ranged', elite: true, cost: 135, hp: 194, dmg: 50, interval: 1.8, range: 200, speed: 40, train: 2.5, w: 24, h: 48,
-          look: { body: 'human', weapon: 'staff', hat: 'horns' }, projectile: { look: 'fireball', speed: 380, arc: true, splash: 40 }, desc: 'Pots de braises en zone' },
+          look: { body: 'human', weapon: 'staff', hat: 'horns' }, projectile: { look: 'pot-braises', speed: 380, arc: true, splash: 40 }, desc: 'Pots de braises en zone' },
         // Chaman réduit au simulateur : à 64 dégâts, portée 220 et zone 50, il faisait passer le robot
         // de 6 à 20 assauts sur 24 avec 2 âges (le boss du N10 ne tenait plus). Maintenant : 14 sur 24.
       ],
@@ -1467,7 +1467,7 @@ window.PA = window.PA || {};
   // Couleur des explosions à zone, selon le projectile
   const SPLASH_COLOR = { fireball: '#ff9a3c', oil: '#3b2a1a', mortar: '#ffb057', rocket: '#ff8a3c', plasma: '#7ef0c8',
     lava: '#ff6a2a', barrel: '#ff9a3c', lightning: '#bfe8ff', spore: '#9cff5a', flame: '#ff7a22', psi: '#d49bff',
-    jar: '#c9773a', steambomb: '#ffc27a', boiler: '#e8e2da', poix: '#ff9a3c', 'pierre-mangonneau': '#b9a58a' };
+    jar: '#c9773a', steambomb: '#ffc27a', boiler: '#e8e2da', poix: '#ff9a3c', 'pierre-mangonneau': '#b9a58a', 'pot-braises': '#ff9a3c' };
 
   function pickWeighted(weights) {
     const total = weights.reduce((s, w) => s + w, 0);
@@ -4152,6 +4152,7 @@ window.PA = window.PA || {};
         case 'boulder':
           ctx.fillStyle = '#7d6a55'; ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.fill();
           ctx.strokeStyle = '#5c4b3a'; ctx.lineWidth = 1.5; ctx.stroke(); break;
+        case 'pot-braises':   // pot du chaman, tant que son image (js/sprites.js) n'est pas chargée
         case 'fireball':
           ctx.fillStyle = 'rgba(255,170,60,0.45)'; ctx.beginPath(); ctx.arc(p.x, p.y, 11, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = '#ff7a22'; ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI * 2); ctx.fill(); break;

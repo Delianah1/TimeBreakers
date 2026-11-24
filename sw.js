@@ -4,7 +4,7 @@
    version (et on la range dans le cache) ; hors ligne on sert le cache.
    Changer VERSION vide l'ancien cache.
    ========================================================================= */
-const VERSION = 'timebreakers-v41';
+const VERSION = 'timebreakers-v42';
 const FICHIERS = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'icones/icone-192.png', 'icones/icone-512.png', 'icones/icone-180.png', 'icones/icone-maskable-512.png',
@@ -14,7 +14,10 @@ const FICHIERS = [
   'js/version.js', 'js/config.js', 'js/meta.js', 'js/battle.js', 'js/render.js', 'js/art.js',
   'js/art/jurassique.js', 'js/art/antiquite.js', 'js/art/medieval.js', 'js/art/renaissance.js', 'js/art/vapeur.js',
   'js/art/moderne.js', 'js/art/heros.js', 'js/art/postapo.js', 'js/art/futur.js', 'js/art/alien.js', 'js/art/assaut.js', 'js/art/magma.js', 'js/art/atlantide.js', 'js/art/glace.js', 'js/art/neon.js',
-  'js/sprites.js', 'images/sprites/medieval.webp', 'images/sprites/medieval-chateau.webp', 'images/sprites/medieval-anim.webp', 'js/decors.js', 'images/decors/medieval-fond.webp', 'images/decors/medieval-ble.webp',
+  'js/sprites.js', 'images/sprites/jurassique.webp', 'images/sprites/magma.webp', 'images/sprites/pierre.webp', 'images/sprites/antiquite.webp', 'images/sprites/medieval.webp',
+  'images/sprites/jurassique-base.webp', 'images/sprites/magma-base.webp', 'images/sprites/pierre-base.webp',
+  'images/sprites/jurassique-tourelles.webp', 'images/sprites/magma-tourelles.webp', 'images/sprites/projectiles.webp',
+  'images/decors/jurassique-fond.webp', 'images/decors/magma-fond.webp', 'images/decors/pierre-fond.webp', 'images/decors/antiquite-fond.webp', 'images/sprites/medieval-chateau.webp', 'images/sprites/medieval-anim.webp', 'js/decors.js', 'images/decors/medieval-fond.webp', 'images/decors/medieval-ble.webp',
   'js/musique.js', 'js/sons.js', 'js/effets.js', 'js/pouvoirs.js', 'js/champions.js', 'js/modes.js', 'js/ui.js', 'js/tuto.js', 'js/magma.js', 'js/ages-caches.js', 'js/hauts-faits.js', 'js/collection.js', 'js/mutateurs.js', 'js/main.js',
 ];
 

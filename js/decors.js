@@ -30,8 +30,8 @@ window.PA = window.PA || {};
     return e.pret ? e.img : null;
   }
   // Une image de décor, calée sur le sol ; les bords hors image (marges de secousse) sont étirés.
-  function peindre(ctx, im, alpha) {
-    const h = im.height * LARGE / im.width, y0 = GROUND - PIEDS * LARGE / im.width;
+  function peindre(ctx, im, alpha, pieds) {
+    const h = im.height * LARGE / im.width, y0 = GROUND - (pieds || PIEDS) * LARGE / im.width;
     if (alpha < 1) ctx.globalAlpha = alpha;
     ctx.drawImage(im, -40, y0, LARGE, h);
     if (y0 > -40) ctx.drawImage(im, 0, 0, im.width, 2, -40, -40, LARGE, y0 + 40 + 1);
@@ -51,6 +51,36 @@ window.PA = window.PA || {};
     moulin(ctx, t);
     ciel(ctx, t, dt || 0);
   };
+
+  // ------------------------------------------------------------ autres fonds (24 novembre)
+  // Préparés par outils/decoupe-fonds.js : 1360 px de large, la piste (PIEDS) à la rangée 650.
+  // Par-dessus l'image, un peu de vie dessinée en code : fumée, oiseaux.
+  const Kit = A.kit;
+  const CRATERE = [166, 92, 235];   // cratère du volcan du fond jurassique à l'écran, et le bas de ses coulées
+  const FONDS = {
+    jurassique: { pieds: 650, vie(ctx, t, dt) {
+      Kit.puffs(ctx, CRATERE[0], CRATERE[1] + 6, { n: 6, speed: 0.07, rise: 130, drift: 120, r0: 12, r1: 40, rgb: '110,96,100', a: 0.45 });
+      Kit.flock(ctx, t, dt, 'jurassique-img', '#5a3a3a', 3);
+    } },
+    magma: { pieds: 650, vie(ctx, t) {
+      // la lave du fond palpite doucement
+      ctx.fillStyle = `rgba(255,90,30,${0.05 + 0.04 * Math.sin(t * 1.6)})`; ctx.fillRect(-40, 300, W + 80, GROUND - 300);
+    } },
+    pierre: { pieds: 650, vie(ctx, t, dt) { Kit.flock(ctx, t, dt, 'pierre-img', '#4a3a30', 4); } },
+    antiquite: { pieds: 650, vie(ctx, t, dt) { Kit.flock(ctx, t, dt, 'antiquite-img', '#3a4a5a', 4); } },
+  };
+  for (const age in FONDS) {
+    const F = FONDS[age], code = A.backdrops[age];
+    if (!code) continue;
+    image(age + '-fond');
+    A.backdrops[age] = function (ctx, t, dt, R) {
+      const im = image(age + '-fond');
+      if (age === 'jurassique' && PA.Magma) PA.Magma.CRATERE = im ? CRATERE : null;   // le réveil du volcan suit le dessin
+      if (!im) return code(ctx, t, dt, R);
+      peindre(ctx, im, 1, F.pieds);
+      try { F.vie(ctx, t, dt || 0); } catch (e) { /* décor seul */ }
+    };
+  }
 
   // ------------------------------------------------------------ moulin (ailes qui tournent)
   // Les ailes ont été retirées de l'image (outils/decor-medieval.js) ; elles sont dessinées ici.
@@ -228,16 +258,27 @@ window.PA = window.PA || {};
 
   // ------------------------------------------------------------ château (base médiévale)
   // Atlas images/sprites/medieval-chateau.webp (outils/decoupe-sprites.js) : [x, y, w, h] des 3 états.
-  const CHATEAU = { poses: [[0, 0, 300, 475], [302, 0, 303, 504], [607, 0, 310, 456]], haut: 215, gauche: -8 };
-  const ch = { bleu: null, rouge: null };
-  { const im = new Image(); im.onload = () => { ch.bleu = im; try { ch.rouge = PA.Sprites ? PA.Sprites.rougir(im) : im; } catch (e) { ch.rouge = im; } }; im.src = 'images/sprites/medieval-chateau.webp'; }
-  const base0 = A.bases.castle;
-  A.bases.castle = function (ctx, side, def, team, dark, R) {
-    if (!ch.bleu) return base0.call(this, ctx, side, def, team, dark, R);
-    const g = PA.Game, bs = side === 1 ? g && g.run && g.run.base : g && g.battle && g.battle.enemyBase;
-    const r = bs && bs.maxHp ? bs.hp / bs.maxHp : 1;
-    const [x, y, w, h] = CHATEAU.poses[r > 0.6 ? 0 : r > 0.25 ? 1 : 2];
-    const k = CHATEAU.haut / CHATEAU.poses[0][3];
-    ctx.drawImage(side === 1 ? ch.bleu : ch.rouge, x, y, w, h, CHATEAU.gauche, GROUND - h * k + 2, w * k, h * k);
+  // Les autres bases (24 novembre) suivent le même principe : look du dessin en code → son atlas.
+  // haut : hauteur à l'écran de l'état intact (≈ 1,26 × la hauteur de la base en code, comme le château).
+  const BASES = {
+    castle: { fichier: 'medieval-chateau', poses: [[0, 0, 300, 475], [302, 0, 303, 504], [607, 0, 310, 456]], haut: 215, gauche: -8 },
+    volcano: { fichier: 'jurassique-base', poses: [[0, 0, 319, 484], [321, 0, 310, 504], [633, 0, 310, 386]], haut: 225, gauche: -10 },
+    magma: { fichier: 'magma-base', poses: [[0, 0, 313, 492], [315, 0, 309, 504], [626, 0, 310, 385]], haut: 235, gauche: -8 },
+    cave: { fichier: 'pierre-base', poses: [[0, 0, 328, 474], [330, 0, 313, 504], [645, 0, 293, 386]], haut: 190, gauche: -10 },
   };
+  for (const look in BASES) {
+    const B = BASES[look], base0 = A.bases[look];
+    if (!base0) continue;
+    const im = new Image();
+    im.onload = () => { B.bleu = im; try { B.rouge = PA.Sprites ? PA.Sprites.rougir(im) : im; } catch (e) { B.rouge = im; } };
+    im.src = 'images/sprites/' + B.fichier + '.webp';
+    A.bases[look] = function (ctx, side, def, team, dark, R) {
+      if (!B.bleu) return base0.call(this, ctx, side, def, team, dark, R);
+      const g = PA.Game, bs = side === 1 ? g && g.run && g.run.base : g && g.battle && g.battle.enemyBase;
+      const r = bs && bs.maxHp ? bs.hp / bs.maxHp : 1;
+      const [x, y, w, h] = B.poses[r > 0.6 ? 0 : r > 0.25 ? 1 : 2];
+      const k = B.haut / B.poses[0][3];
+      ctx.drawImage(side === 1 ? B.bleu : B.rouge, x, y, w, h, B.gauche, GROUND - h * k + 2, w * k, h * k);
+    };
+  }
 })();
